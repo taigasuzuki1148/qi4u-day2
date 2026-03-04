@@ -273,7 +273,7 @@ transition: fade-out
            bg-transparent hover:bg-white hover:text-black transition-colors duration-200
            items-center justify-center"
   >
-    Graph Coloring
+    IQM real device
   </a>
 </div>
   </div>
