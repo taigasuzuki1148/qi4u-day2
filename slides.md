@@ -280,7 +280,7 @@ transition: fade-out
   
   <!-- 右：写真 -->
   <div class="w-55 h-full">
-    <img src="/images/IMG_1947.png" alt="Quantum" class="w-full h-full object-cover">
+    <img src="/images/Kimata.JPG" alt="Quantum" class="w-full h-full object-cover">
   </div>
 </div>
 </div>
