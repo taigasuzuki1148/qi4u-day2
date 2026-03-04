@@ -301,7 +301,7 @@ transition: fade-out
       <p class="text-sm text-gray-300">
         Here, we’ll show how to construct the oracle when the problem is formulated as a graph problem, and we’ll introduce tools that help you build it, along with implementation examples!
       </p>
-      <p class="text-sm text-gray-400 mb-3">Lecturer: Aditya Mukherjee, Rafet Uregen, Niklas Näsman, Upanyan Baskota and Taiga Suzuki</p>
+      <p class="text-sm text-gray-400 mb-3">Lecturer: Aditya Mukherjee, Rafet Uregen, Niklas Näsman, Upanayan Baskota and Taiga Suzuki</p>
     </div>
   </div>
   
@@ -436,16 +436,17 @@ IQM real devices are available, しかしながら，
 
 # The use-cases by students from Aalto university
 
-### 1. Aditya Mukherjee
+### 1. Rafet Uregen
 <br>
 
-### 2. Rafet Uregen
+### 2. Upanayan Baskota
 <br>
 
-### 3. Niklas Nasman
+### 3. Aditya Mukherjee
 <br>
 
-### 4. Upanyan Baskota
+### 4. Niklas Nasman
+<br>
 
 
 ---
