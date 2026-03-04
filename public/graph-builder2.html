@@ -1,0 +1,641 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Graph Builder → Grover Code (Precolored only)</title>
+  <style>
+    :root{
+      --bg:#0b0f19; --text:#e9eefc; --muted:#a9b3d3;
+      --panel: rgba(18,26,43,.92);
+    }
+    *{ box-sizing:border-box; }
+    html, body{ height:100%; margin:0; }
+    body{
+      height:100%;
+      overflow:hidden;
+      padding:12px;
+      display:grid;
+      grid-template-columns: minmax(340px, 460px) 1fr;
+      gap:12px;
+      background: linear-gradient(180deg, #060912, var(--bg));
+      color: var(--text);
+      font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", sans-serif;
+    }
+
+    .card{
+      height:100%;
+      min-height:0;
+      overflow:hidden;
+      display:flex;
+      flex-direction:column;
+      background: var(--panel);
+      border: 1px solid rgba(122,162,255,.18);
+      border-radius: 14px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.35);
+      padding: 10px 10px 8px;
+    }
+    .scroll{ overflow:auto; min-height:0; padding-right:4px; }
+
+    h1{ font-size:15px; margin:0 0 6px; }
+    h2{ font-size:12px; margin:10px 0 6px; color: var(--muted); font-weight:600; }
+    p{ margin:6px 0; color:var(--muted); font-size:12px; line-height:1.45; }
+
+    .row{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+    label{ font-size:11px; color:var(--muted); }
+
+    button, input[type="number"], textarea{
+      background:#0f1728;
+      color:var(--text);
+      border:1px solid rgba(122,162,255,.25);
+      border-radius:10px;
+      padding:6px 8px;
+      font-size:12px;
+      outline:none;
+    }
+    button{ cursor:pointer; font-weight:800; }
+    button:active{ transform: translateY(1px); }
+    button:hover{ border-color: rgba(122,162,255,.5); }
+
+    .divider{ height:1px; background: rgba(255,255,255,.08); margin:8px 0; }
+
+    .toggle{
+      display:flex; gap:8px; align-items:flex-start;
+      padding:8px 10px;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,.08);
+      background: rgba(0,0,0,.18);
+    }
+    .toggle input{ width:14px; height:14px; margin-top:2px; }
+    .toggle .t{ color:var(--muted); font-size:12px; line-height:1.25; }
+
+    .list{ min-height:0; overflow:auto; padding-right:4px; }
+    .item{
+      display:flex; justify-content:space-between; gap:8px;
+      padding:6px 8px; border-radius:10px;
+      font-size:12px; background: rgba(122,162,255,.08);
+      color: var(--muted);
+    }
+    .kbd{
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size:10px; padding:2px 6px;
+      border:1px solid rgba(255,255,255,.12);
+      border-radius:8px; color: var(--text);
+      background: rgba(255,255,255,.04);
+      white-space:nowrap;
+    }
+
+    textarea{
+      width:100%;
+      min-height: 190px;
+      resize: vertical;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 11.5px;
+      line-height:1.35;
+      background: rgba(0,0,0,.24);
+      border:1px solid rgba(255,255,255,.10);
+      border-radius: 12px;
+      padding: 10px;
+    }
+    .codebar{ display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:8px; }
+    .small{ color:var(--muted); font-size:11px; }
+
+    canvas{
+      width:100%; height:100%; display:block;
+      border-radius:14px;
+      border:1px solid rgba(122,162,255,.18);
+      box-shadow: 0 10px 30px rgba(0,0,0,.35);
+      background:
+        radial-gradient(1200px 800px at 60% 40%, rgba(122,162,255,.12), transparent 60%),
+        radial-gradient(900px 600px at 30% 70%, rgba(255,107,107,.08), transparent 60%),
+        #070b14;
+    }
+
+    /* floating color picker */
+    .picker{
+      position: fixed;
+      z-index: 50;
+      display:none;
+      background: rgba(18,26,43,.96);
+      border: 1px solid rgba(122,162,255,.25);
+      border-radius: 14px;
+      padding: 10px;
+      box-shadow: 0 14px 40px rgba(0,0,0,.45);
+      min-width: 220px;
+    }
+    .picker .ptitle{
+      font-size: 12px;
+      font-weight: 900;
+      margin:0 0 8px;
+      color: var(--text);
+    }
+    .swatches{ display:grid; grid-template-columns: repeat(4, 1fr); gap:8px; }
+
+    /* swatch with number */
+    .sw{
+      height:32px;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,.14);
+      cursor:pointer;
+
+      display:flex;
+      align-items:center;
+      justify-content:center;
+
+      font-weight: 900;
+      font-size: 12px;
+      color: rgba(11,15,25,.95);
+      text-shadow: 0 1px 0 rgba(255,255,255,.35);
+      user-select:none;
+    }
+
+    .picker .prow{ display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:10px; }
+    .picker .pbtn{
+      padding:6px 8px;
+      border-radius:10px;
+      border:1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.06);
+      color: var(--text);
+      cursor:pointer;
+      font-weight: 900;
+      font-size: 12px;
+    }
+    .picker .pbtn:hover{ border-color: rgba(122,162,255,.45); }
+
+    @media (max-height: 420px){
+      body{ grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; }
+      .picker{ transform: scale(.95); transform-origin: top left; }
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="scroll">
+      <h1>Graph Builder → Code Export (copy & paste)</h1>
+      <p class="small">
+        1) Add vertices  2) Connect edges  3) Set precolored  4) Copy code
+      </p>
+
+      <div class="divider"></div>
+
+      <h2>Parameters</h2>
+      <div class="row">
+        <label>k</label>
+        <input id="kInput" type="number" min="2" max="64" value="3" style="width:72px" />
+        <button id="addVBtn">+ Vertex</button>
+        <button id="clearBtn">Clear</button>
+      </div>
+
+      <h2>Mode</h2>
+      <div class="toggle">
+        <input id="modeMove" name="mode" type="radio" value="move" checked />
+        <div class="t"><b>Move</b>: drag vertices (no edge / no color)</div>
+      </div>
+      <div class="toggle" style="margin-top:8px;">
+        <input id="modeEdge" name="mode" type="radio" value="edge" />
+        <div class="t"><b>Edge</b>: click two vertices to toggle an edge</div>
+      </div>
+      <div class="toggle" style="margin-top:8px;">
+        <input id="modeLock" name="mode" type="radio" value="lock" />
+        <div class="t"><b>Precolored</b>: click a vertex to set its fixed color (0..k-1)</div>
+      </div>
+
+      <p class="small" style="margin-top:8px;">
+        • Unfixed vertices are shown in <b>gray</b><br/>
+        • Vertex labels are <b>v0..v(n-1)</b>
+      </p>
+
+      <h2>precolored</h2>
+      <div class="list" id="lockList"></div>
+
+      <h2>Exported code</h2>
+      <textarea id="codeOut" spellcheck="false"></textarea>
+      <div class="codebar">
+        <button id="copyBtn">Copy</button>
+        <div class="small" id="copyMsg"></div>
+      </div>
+    </div>
+  </div>
+
+  <canvas id="cv"></canvas>
+
+  <div class="picker" id="picker">
+    <p class="ptitle" id="pickerTitle">Choose a color</p>
+    <div class="swatches" id="swatches"></div>
+    <div class="prow">
+      <button class="pbtn" id="unsetBtn">Unset</button>
+      <button class="pbtn" id="closeBtn">Close</button>
+    </div>
+  </div>
+
+  <script>
+    // ===== Canvas setup =====
+    const canvas = document.getElementById('cv');
+    const ctx = canvas.getContext('2d');
+    function resize() {
+      const dpr = Math.max(1, window.devicePixelRatio || 1);
+      const cssW = canvas.clientWidth, cssH = canvas.clientHeight;
+      if (!cssW || !cssH) return;
+      canvas.width = Math.floor(cssW * dpr);
+      canvas.height = Math.floor(cssH * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      draw();
+    }
+    window.addEventListener('resize', resize);
+
+    // ===== UI =====
+    const kInput = document.getElementById('kInput');
+    const addVBtn = document.getElementById('addVBtn');
+    const clearBtn = document.getElementById('clearBtn');
+
+    const modeMove = document.getElementById('modeMove');
+    const modeEdge = document.getElementById('modeEdge');
+    const modeLock = document.getElementById('modeLock');
+
+    const lockList = document.getElementById('lockList');
+    const codeOut = document.getElementById('codeOut');
+    const copyBtn = document.getElementById('copyBtn');
+    const copyMsg = document.getElementById('copyMsg');
+
+    const picker = document.getElementById('picker');
+    const pickerTitle = document.getElementById('pickerTitle');
+    const swatches = document.getElementById('swatches');
+    const unsetBtn = document.getElementById('unsetBtn');
+    const closeBtn = document.getElementById('closeBtn');
+
+    // ===== State =====
+    let k = parseInt(kInput.value, 10);
+    let nodes = [];            // {index,x,y}
+    let edges = new Set();     // "a,b" with a<b
+    let locked = new Map();    // index -> color
+    let dragging = null;
+    let dragOffset = {x:0, y:0};
+    let moved = false;
+
+    let edgeFirst = null;      // node index selected (edge mode)
+    let pickerNode = null;     // node index (picker open)
+
+    // ===== Helpers =====
+    function clamp(n, a, b){ return Math.max(a, Math.min(b, n)); }
+    function keyEdge(a,b){
+      if (a===b) return null;
+      if (a>b) [a,b]=[b,a];
+      return `${a},${b}`;
+    }
+    function parseEdgeKey(s){
+      const [a,b] = s.split(',').map(x=>parseInt(x,10));
+      return [a,b];
+    }
+    function getMode(){
+      if (modeEdge.checked) return "edge";
+      if (modeLock.checked) return "lock";
+      return "move";
+    }
+    function colorToFill(idx, k){
+      const hue = (idx * (360 / Math.max(2, k))) % 360;
+      return `hsl(${hue}, 80%, 58%)`;
+    }
+    function colorToStroke(idx, k){
+      const hue = (idx * (360 / Math.max(2, k))) % 360;
+      return `hsl(${hue}, 85%, 42%)`;
+    }
+    function layoutNewNode(index){
+      const W = canvas.clientWidth || 900;
+      const H = canvas.clientHeight || 600;
+      const cx = W * 0.5, cy = H * 0.5;
+      const r = Math.min(W, H) * 0.30;
+      const ang = (index * 0.9) % (Math.PI*2);
+      return { index, x: cx + r*Math.cos(ang), y: cy + r*Math.sin(ang) };
+    }
+    function hitNode(px, py){
+      const R = 22;
+      for (let i = nodes.length - 1; i >= 0; i--){
+        const n = nodes[i];
+        const dx = px - n.x, dy = py - n.y;
+        if (dx*dx + dy*dy <= R*R) return n;
+      }
+      return null;
+    }
+    function pointerPos(evt){
+      const rect = canvas.getBoundingClientRect();
+      return { x: evt.clientX - rect.left, y: evt.clientY - rect.top };
+    }
+
+    // ===== Export / UI updates =====
+    function updateLockList(){
+      lockList.innerHTML = "";
+      if (locked.size === 0){
+        const div = document.createElement("div");
+        div.className = "item";
+        div.textContent = "No fixed vertices (switch to Precolored mode and click a vertex)";
+        lockList.appendChild(div);
+        return;
+      }
+      [...locked.entries()].sort((a,b)=>a[0]-b[0]).forEach(([idx,c])=>{
+        const div = document.createElement("div");
+        div.className = "item";
+        div.innerHTML = `<span>v${idx}</span><span class="kbd">color=${c} 🔒</span>`;
+        lockList.appendChild(div);
+      });
+    }
+
+    function exportCode(){
+      const n = nodes.length;
+
+      const ed = [...edges].map(parseEdgeKey)
+        .sort((p,q)=> (p[0]-q[0]) || (p[1]-q[1]));
+
+      const pc = [...locked.entries()].sort((a,b)=>a[0]-b[0])
+        .reduce((obj,[idx,c]) => (obj[idx]=c, obj), {});
+      const pcKeys = Object.keys(pc);
+
+      const edgesInline = ed.length
+        ? `[${ed.map(([a,b])=>`(${a},${b})`).join(", ")}]`
+        : `[]`;
+
+      const preInline = pcKeys.length
+        ? `{${pcKeys.map(key=>`${key}:${pc[key]}`).join(", ")}}`
+        : `{}`;
+
+      codeOut.value =
+`n = ${n}
+k = ${k}
+edges = ${edgesInline}
+precolored = ${preInline}
+`;
+    }
+
+    function updateAll(){
+      updateLockList();
+      exportCode();
+    }
+
+    // ===== Drawing =====
+    function draw(){
+      const w = canvas.clientWidth, h = canvas.clientHeight;
+      if (!w || !h) return;
+      ctx.clearRect(0,0,w,h);
+
+      // edges
+      ctx.save();
+      ctx.strokeStyle = "rgba(233,238,252,0.30)";
+      ctx.lineWidth = 2.5;
+      for (const ek of edges){
+        const [a,b] = parseEdgeKey(ek);
+        const u = nodes[a], v = nodes[b];
+        if (!u || !v) continue;
+        ctx.beginPath(); ctx.moveTo(u.x,u.y); ctx.lineTo(v.x,v.y); ctx.stroke();
+      }
+
+      // highlight first pick in edge mode
+      if (getMode() === "edge" && edgeFirst !== null && nodes[edgeFirst]){
+        const n = nodes[edgeFirst];
+        ctx.beginPath();
+        ctx.strokeStyle = "rgba(122,255,196,0.85)";
+        ctx.lineWidth = 3;
+        ctx.setLineDash([6,4]);
+        ctx.arc(n.x, n.y, 32, 0, Math.PI*2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+      ctx.restore();
+
+      // nodes
+      const R = 22;
+      for (const n of nodes){
+        const isLocked = locked.has(n.index);
+
+        // shadow
+        ctx.save();
+        ctx.beginPath();
+        ctx.fillStyle = "rgba(0,0,0,0.32)";
+        ctx.arc(n.x+3, n.y+3, R, 0, Math.PI*2);
+        ctx.fill();
+        ctx.restore();
+
+        // fill
+        ctx.beginPath();
+        if (isLocked){
+          const c = ((locked.get(n.index) % k) + k) % k;
+          ctx.fillStyle = colorToFill(c, k);
+          ctx.strokeStyle = colorToStroke(c, k);
+        } else {
+          ctx.fillStyle = "rgba(233,238,252,0.12)";
+          ctx.strokeStyle = "rgba(233,238,252,0.22)";
+        }
+        ctx.lineWidth = 3;
+        ctx.arc(n.x, n.y, R, 0, Math.PI*2);
+        ctx.fill();
+        ctx.stroke();
+
+        // lock ring
+        if (isLocked){
+          ctx.beginPath();
+          ctx.strokeStyle = "rgba(233,238,252,0.92)";
+          ctx.lineWidth = 2;
+          ctx.setLineDash([4,3]);
+          ctx.arc(n.x, n.y, R+6, 0, Math.PI*2);
+          ctx.stroke();
+          ctx.setLineDash([]);
+        }
+
+        // label
+        ctx.fillStyle = isLocked ? "#0b0f19" : "rgba(233,238,252,0.92)";
+        ctx.font = "900 13px ui-monospace, monospace";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(`v${n.index}`, n.x, n.y);
+
+        if (isLocked){
+          ctx.fillStyle = "rgba(233,238,252,0.92)";
+          ctx.font = "700 10px ui-monospace, monospace";
+          ctx.fillText(`c=${locked.get(n.index)} 🔒`, n.x, n.y + R + 12);
+        }
+      }
+    }
+
+    // ===== Picker =====
+    function rebuildSwatches(nodeIndex){
+      pickerTitle.textContent = `Choose a color for v${nodeIndex}`;
+      swatches.innerHTML = "";
+      for (let c=0; c<k; c++){
+        const d = document.createElement("div");
+        d.className = "sw";
+        d.style.background = colorToFill(c, k);
+        d.title = `color ${c}`;
+        d.textContent = String(c); // <-- NUMBER INSIDE
+
+        d.addEventListener("click", () => {
+          locked.set(nodeIndex, c);
+          closePicker();
+          updateAll();
+          draw();
+        });
+        swatches.appendChild(d);
+      }
+      unsetBtn.disabled = !locked.has(nodeIndex);
+    }
+
+    function openPickerForNode(nodeIndex, screenX, screenY){
+      pickerNode = nodeIndex;
+      rebuildSwatches(nodeIndex);
+
+      const pad = 12;
+      const vw = window.innerWidth, vh = window.innerHeight;
+      picker.style.display = "block";
+      const rect = picker.getBoundingClientRect();
+      const x = clamp(screenX + 10, pad, vw - rect.width - pad);
+      const y = clamp(screenY + 10, pad, vh - rect.height - pad);
+      picker.style.left = `${x}px`;
+      picker.style.top = `${y}px`;
+    }
+
+    function closePicker(){
+      picker.style.display = "none";
+      pickerNode = null;
+    }
+
+    unsetBtn.addEventListener("click", () => {
+      if (pickerNode !== null){
+        locked.delete(pickerNode);
+        closePicker();
+        updateAll();
+        draw();
+      }
+    });
+    closeBtn.addEventListener("click", closePicker);
+
+    window.addEventListener("pointerdown", (e) => {
+      if (picker.style.display !== "block") return;
+      const within = picker.contains(e.target);
+      if (!within){
+        if (e.target !== canvas) closePicker();
+      }
+    });
+
+    // ===== Mode changes =====
+    document.querySelectorAll('input[name="mode"]').forEach(r => {
+      r.addEventListener("change", () => {
+        edgeFirst = null;
+        closePicker();
+        draw();
+      });
+    });
+
+    // ===== k: commit immediately (NO Apply) =====
+    kInput.addEventListener("input", () => {
+      const newK = Math.max(2, Math.min(64, parseInt(kInput.value, 10) || 2));
+      k = newK;
+
+      // keep locked colors in range
+      for (const [idx,c] of locked.entries()) locked.set(idx, ((c % k) + k) % k);
+
+      // if picker is open, rebuild swatches
+      if (pickerNode !== null) rebuildSwatches(pickerNode);
+
+      updateAll();
+      draw();
+    });
+
+    // ===== Canvas interactions =====
+    canvas.addEventListener('pointerdown', (evt) => {
+      const p = pointerPos(evt);
+      const n = hitNode(p.x, p.y);
+      if (!n) return;
+
+      dragging = n;
+      moved = false;
+      dragOffset.x = p.x - n.x;
+      dragOffset.y = p.y - n.y;
+      canvas.setPointerCapture(evt.pointerId);
+    });
+
+    canvas.addEventListener('pointermove', (evt) => {
+      if (!dragging) return;
+      const p = pointerPos(evt);
+      const nx = p.x - dragOffset.x;
+      const ny = p.y - dragOffset.y;
+      const dx = nx - dragging.x, dy = ny - dragging.y;
+      if (dx*dx + dy*dy > 1) moved = true;
+
+      dragging.x = nx;
+      dragging.y = ny;
+      draw();
+    });
+
+    canvas.addEventListener('pointerup', (evt) => {
+      if (!dragging) return;
+
+      if (!moved){
+        const idx = dragging.index;
+        const mode = getMode();
+
+        if (mode === "lock"){
+          openPickerForNode(idx, evt.clientX, evt.clientY);
+        } else if (mode === "edge"){
+          if (edgeFirst === null){
+            edgeFirst = idx;
+          } else {
+            const ek = keyEdge(edgeFirst, idx);
+            if (ek){
+              if (edges.has(ek)) edges.delete(ek);
+              else edges.add(ek);
+              updateAll();
+            }
+            edgeFirst = null;
+          }
+          draw();
+        }
+      }
+
+      dragging = null;
+    });
+
+    // ===== Buttons =====
+    addVBtn.addEventListener('click', () => {
+      const idx = nodes.length;
+      nodes.push(layoutNewNode(idx));
+      updateAll();
+      draw();
+    });
+
+    clearBtn.addEventListener('click', () => {
+      nodes = [layoutNewNode(0), layoutNewNode(1), layoutNewNode(2), layoutNewNode(3)];
+      nodes.forEach((n,i)=>n.index=i);
+      edges = new Set();
+      locked = new Map();
+      edgeFirst = null;
+      closePicker();
+      updateAll();
+      draw();
+    });
+
+    copyBtn.addEventListener('click', async () => {
+      try{
+        await navigator.clipboard.writeText(codeOut.value);
+        copyMsg.textContent = "✅ Copied";
+        setTimeout(()=> copyMsg.textContent = "", 1200);
+      }catch(e){
+        codeOut.select();
+        document.execCommand("copy");
+        copyMsg.textContent = "✅ Copied (fallback)";
+        setTimeout(()=> copyMsg.textContent = "", 1200);
+      }
+    });
+
+    // ===== Boot =====
+    function boot(){
+      nodes = [layoutNewNode(0), layoutNewNode(1), layoutNewNode(2), layoutNewNode(3)];
+      nodes.forEach((n,i)=>n.index=i);
+
+      edges = new Set();
+      locked = new Map();
+      edgeFirst = null;
+
+      updateAll();
+      requestAnimationFrame(resize);
+    }
+    boot();
+  </script>
+</body>
+</html>

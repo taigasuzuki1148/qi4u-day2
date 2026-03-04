@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Idea Cards: Problem → Graph</title>
+  <style>
+    :root{ --bg:#0b0f19; --panel:rgba(18,26,43,.92); --text:#e9eefc; --muted:#a9b3d3; --line:rgba(122,162,255,.22); }
+    *{ box-sizing:border-box; }
+    html, body{ height:100%; margin:0; }
+    body{
+      height:100%; overflow:hidden; padding:12px;
+      background: linear-gradient(180deg, #060912, var(--bg));
+      color:var(--text);
+      font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans JP", "Hiragino Sans", "Yu Gothic", sans-serif;
+      display:grid; grid-template-columns: 1fr 1fr; gap:12px;
+    }
+    .card{
+      background:var(--panel);
+      border:1px solid rgba(122,162,255,.18);
+      border-radius:14px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.35);
+      padding:12px;
+      overflow:hidden;
+      display:flex; flex-direction:column; gap:10px;
+      min-height:0;
+    }
+    h1{ font-size:16px; margin:0; }
+    .muted{ color:var(--muted); font-size:12px; line-height:1.4; margin:0; }
+    select, button, textarea{
+      background:#0f1728; color:var(--text);
+      border:1px solid rgba(122,162,255,.25);
+      border-radius:10px;
+      padding:8px 10px;
+      font-size:12px;
+      outline:none;
+    }
+    button{ cursor:pointer; font-weight:900; }
+    button:hover{ border-color: rgba(122,162,255,.5); }
+    .row{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+    .pill{ font-size:12px; padding:4px 8px; border-radius:999px; border:1px solid rgba(255,255,255,.10); background: rgba(255,255,255,.05); color:var(--muted); }
+    .box{
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.20);
+      border-radius:12px;
+      padding:10px;
+      min-height:0;
+      overflow:auto;
+    }
+    .k{ font-weight:900; color:var(--text); }
+    textarea{
+      width:100%; flex:1; min-height:0; resize:none;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
+      background: rgba(0,0,0,.24);
+      border:1px solid rgba(255,255,255,.10);
+      border-radius:12px;
+      padding:10px;
+      line-height:1.35;
+    }
+    @media (max-width: 900px){ body{ grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Idea Cards：社会の問題 → グラフ彩色</h1>
+    <p class="muted">ドメインを選ぶだけで「頂点/辺/色/k/precolored/最小例」が出ます（そのまま提出フォームに貼れる）。</p>
+
+    <div class="row">
+      <span class="pill">Domain</span>
+      <select id="domain">
+        <option value="timetable">Exam / Class Timetabling</option>
+        <option value="meeting">Meeting Scheduling</option>
+        <option value="wifi">Wi-Fi Channel Assignment</option>
+        <option value="rooms">Room / Seating Assignment</option>
+      </select>
+      <button id="regen">生成</button>
+    </div>
+
+    <div class="box" id="summary"></div>
+
+    <div class="row">
+      <button id="copy">提出文をコピー</button>
+      <span class="muted" id="msg"></span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h1>提出文（コピペ用）</h1>
+    <textarea id="out" spellcheck="false"></textarea>
+  </div>
+
+  <script>
+    const presets = {
+      timetable: {
+        title: "University Exam Timetabling with Graph Coloring",
+        story: "Each course needs an exam slot. If a student takes both courses, those exams cannot be at the same time.",
+        V: "Courses",
+        E: "(i,j) if there exists at least one student enrolled in both course i and j",
+        color: "Exam time slots (e.g., Morning/Afternoon or multiple slots across days)",
+        kHint: "Start with k=2 or 3; use precolored for fixed exams.",
+        small: { n: 4, edges: [[0,1],[1,2],[2,3],[3,0]], k: 2, pre: {0:0, 2:0} }
+      },
+      meeting: {
+        title: "Meeting Scheduling (No attendee conflicts)",
+        story: "Meetings must be assigned time slots so that a person is not required in two meetings at the same time.",
+        V: "Meetings",
+        E: "(i,j) if meetings i and j share at least one attendee",
+        color: "Time slots",
+        kHint: "k = number of slots you allow (2–3 first). Precolor key meetings.",
+        small: { n: 5, edges: [[0,1],[1,2],[2,3],[1,4]], k: 3, pre: {0:0} }
+      },
+      wifi: {
+        title: "Wi-Fi Channel Assignment (Interference avoidance)",
+        story: "Nearby access points should not use the same channel to reduce interference.",
+        V: "Access points (APs)",
+        E: "(i,j) if AP i and j are close enough to interfere",
+        color: "Channels (e.g., 1/6/11 → k=3)",
+        kHint: "k=3 is natural; precolor existing fixed AP channels.",
+        small: { n: 4, edges: [[0,1],[1,2],[2,3]], k: 3, pre: {1:2} }
+      },
+      rooms: {
+        title: "Room / Seating Assignment (Conflict-free grouping)",
+        story: "Groups/people must be assigned rooms/tables so that incompatible pairs are separated.",
+        V: "Groups (or people)",
+        E: "(i,j) if i and j cannot share the same room/table",
+        color: "Rooms / Tables",
+        kHint: "Start with k=2–3 rooms; precolor fixed VIP placements if needed.",
+        small: { n: 4, edges: [[0,1],[0,2],[2,3]], k: 2, pre: {0:0} }
+      }
+    };
+
+    const domain = document.getElementById("domain");
+    const summary = document.getElementById("summary");
+    const out = document.getElementById("out");
+    const msg = document.getElementById("msg");
+
+    function render(){
+      const p = presets[domain.value];
+      summary.innerHTML = `
+        <div class="muted"><span class="k">Story:</span> ${p.story}</div>
+        <div class="muted" style="margin-top:6px;"><span class="k">Nodes (V):</span> ${p.V}</div>
+        <div class="muted"><span class="k">Edges (E):</span> ${p.E}</div>
+        <div class="muted"><span class="k">Colors (k):</span> ${p.color}</div>
+        <div class="muted" style="margin-top:6px;"><span class="k">IQM tip:</span> ${p.kHint}</div>
+      `;
+
+      const s = p.small;
+      const edgesStr = s.edges.map(e=>`(${e[0]},${e[1]})`).join(", ");
+      const preStr = Object.keys(s.pre).length ? `{ ${Object.entries(s.pre).map(([a,b])=>`${a}: ${b}`).join(", ")} }` : "{}";
+
+      out.value =
+`Title: ${p.title}
+Problem Type: Graph Coloring
+
+Story:
+${p.story}
+
+Graph Mapping:
+- Nodes (V): ${p.V}
+- Edges (E): ${p.E}
+- Colors (k): ${p.color}
+
+IQM-ready small instance:
+- n = ${s.n}
+- edges = [${edgesStr}]
+- k = ${s.k}
+- precolored = ${preStr}
+
+Impact:
+(Write 1–2 lines: why it matters)
+`;
+    }
+
+    document.getElementById("regen").addEventListener("click", render);
+
+    document.getElementById("copy").addEventListener("click", async () => {
+      try{
+        await navigator.clipboard.writeText(out.value);
+        msg.textContent = "✅ copied";
+      }catch(e){
+        out.select();
+        document.execCommand("copy");
+        msg.textContent = "✅ copied (fallback)";
+      }
+      setTimeout(()=> msg.textContent="", 1200);
+    });
+
+    render();
+  </script>
+</body>
+</html>

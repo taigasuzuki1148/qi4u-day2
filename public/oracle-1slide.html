@@ -1,0 +1,448 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Oracle Design (Flow + Figure)</title>
+  <style>
+    :root{
+      --bg:#0b0f19;
+      --panel: rgba(18,26,43,.92);
+      --text:#e9eefc;
+      --muted:#a9b3d3;
+      --line: rgba(122,162,255,.22);
+      --accent: rgba(122,255,196,.18);
+      --accentLine: rgba(122,255,196,.45);
+      --warn: rgba(255,184,107,.14);
+      --warnLine: rgba(255,184,107,.34);
+      --r: 16px;
+      --shadow: 0 14px 40px rgba(0,0,0,.34);
+    }
+    *{ box-sizing:border-box; }
+    html, body{ height:100%; margin:0; }
+    body{
+      height:100%;
+      overflow:hidden;
+      padding: 12px;
+      color:var(--text);
+      font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans JP", "Hiragino Sans", "Yu Gothic", sans-serif;
+      background:
+        radial-gradient(900px 520px at 55% 40%, rgba(122,162,255,.10), transparent 60%),
+        radial-gradient(800px 520px at 25% 70%, rgba(122,255,196,.08), transparent 60%),
+        linear-gradient(180deg, #060912, var(--bg));
+    }
+
+    .wrap{
+      height:100%;
+      max-width: 1300px;
+      margin: 0 auto;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      min-height:0;
+    }
+
+    .top{
+      display:flex;
+      align-items:flex-end;
+      justify-content:space-between;
+      gap:10px;
+    }
+    .title{
+      margin:0;
+      font-size: 28px;
+      font-weight: 950;
+      letter-spacing:.2px;
+      line-height:1.05;
+      text-shadow: 0 14px 40px rgba(0,0,0,.35);
+      white-space:nowrap;
+    }
+    .subtitle{
+      margin:0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height:1.25;
+      text-align:right;
+    }
+
+    .grid{
+      flex:1;
+      min-height:0;
+      display:grid;
+      grid-template-columns: 1fr 1.25fr;
+      gap: 10px;
+      align-items:stretch;
+    }
+
+    .card{
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--r);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+      min-height:0;
+      position:relative;
+    }
+    .card::before{
+      content:"";
+      position:absolute;
+      inset:-1px;
+      background: linear-gradient(120deg, rgba(122,162,255,.18), transparent 45%, rgba(122,255,196,.14));
+      opacity:.16;
+      pointer-events:none;
+    }
+    .card > *{ position:relative; }
+
+    .cardHead{
+      padding: 10px 12px 8px;
+      border-bottom: 1px solid rgba(255,255,255,.07);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+    }
+    .h{
+      margin:0;
+      font-size: 14px;
+      font-weight: 900;
+      letter-spacing:.2px;
+    }
+    .pill{
+      font-size: 12px;
+      font-weight: 900;
+      padding: 5px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.05);
+      color: var(--muted);
+      white-space:nowrap;
+    }
+    .pill.ok{ background: var(--accent); border-color: var(--accentLine); color:#c8ffe7; }
+
+    .body{
+      padding: 10px 12px 12px;
+      min-height:0;
+      height: calc(100% - 46px);
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+
+    .controls{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:8px;
+    }
+    .small{
+      margin:0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height:1.35;
+    }
+    .btns{ display:flex; gap:8px; }
+    .btn{
+      appearance:none;
+      border:1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.05);
+      color: var(--text);
+      border-radius: 12px;
+      padding: 8px 10px;
+      font-weight: 900;
+      font-size: 12px;
+      cursor:pointer;
+      transition: transform .05s ease, border-color .2s ease, background .2s ease;
+      white-space:nowrap;
+    }
+    .btn:hover{ border-color: rgba(122,162,255,.45); }
+    .btn:active{ transform: translateY(1px); }
+    .btn.primary{
+      border-color: rgba(122,255,196,.45);
+      background: rgba(122,255,196,.10);
+    }
+
+    .steps{
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      min-height:0;
+      overflow:auto;
+      padding-right:4px;
+    }
+    .step{
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.18);
+      border-radius: 14px;
+      padding: 10px 10px;
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:10px;
+      cursor:pointer;
+      transition: transform .15s ease, border-color .25s ease, background .25s ease;
+    }
+    .step.active{
+      border-color: rgba(122,255,196,.55);
+      background: rgba(122,255,196,.08);
+      transform: translateY(-1px);
+    }
+    .stepTitle{
+      margin:0;
+      font-size: 13px;
+      font-weight: 950;
+      line-height:1.2;
+    }
+    .stepText{
+      margin:4px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height:1.35;
+      white-space:pre-line;
+    }
+    .tag{
+      font-size: 11px;
+      font-weight: 900;
+      padding: 4px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.05);
+      color: var(--muted);
+      white-space:nowrap;
+      flex: 0 0 auto;
+      margin-top: 1px;
+    }
+    .tag.good{ background: var(--accent); border-color: var(--accentLine); color:#c8ffe7; }
+    .tag.warn{ background: var(--warn); border-color: var(--warnLine); color:#ffe0c4; }
+
+    .svgBox{
+      flex: 1;
+      min-height:0;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: radial-gradient(600px 420px at 60% 40%, rgba(122,162,255,.12), transparent 60%), rgba(0,0,0,.14);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding: 10px;
+      overflow:hidden;
+    }
+    .legend{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+    }
+    .chip{
+      font-size: 12px;
+      color: var(--muted);
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.05);
+      padding: 4px 8px;
+      border-radius: 999px;
+      white-space:nowrap;
+    }
+    .dot{
+      width:10px; height:10px; border-radius:999px; display:inline-block; margin-right:6px;
+      border: 1px solid rgba(255,255,255,.18);
+      vertical-align:middle;
+    }
+
+    @media (max-width: 980px){
+      .grid{ grid-template-columns: 1fr; }
+      .subtitle{ display:none; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <div class="top">
+      <h1 class="title">グラフ彩色オラクルをどう作ったか</h1>
+      <p class="subtitle">左：設計の流れ（クリックで切替） / 右：図</p>
+    </div>
+
+    <div class="grid">
+      <!-- LEFT -->
+      <div class="card">
+        <div class="cardHead">
+          <div class="h">設計の流れ</div>
+          <div class="pill ok">Compute → Mark → Uncompute</div>
+        </div>
+        <div class="body">
+          <!-- ✅ note / prev / next の id を必ず用意 -->
+          <div class="controls">
+            <p class="small" id="note">—</p>
+            <div class="btns">
+              <button class="btn" id="prevBtn">◀</button>
+              <button class="btn primary" id="nextBtn">▶</button>
+            </div>
+          </div>
+
+          <!-- ✅ steps の id を必ず用意 -->
+          <div class="steps" id="steps"></div>
+        </div>
+      </div>
+
+      <!-- RIGHT -->
+      <div class="card">
+        <div class="cardHead">
+          <div class="h">図</div>
+          <!-- ✅ figPill の id を必ず用意 -->
+          <div class="pill ok" id="figPill">—</div>
+        </div>
+        <div class="body" style="gap:10px;">
+          <!-- ✅ svgBox / legend の id を必ず用意 -->
+          <div class="svgBox" id="svgBox"></div>
+          <div class="legend" id="legend"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ✅ DOMができてから確実に初期化（Slidev iframeでも安全）
+    document.addEventListener("DOMContentLoaded", () => {
+      const stepsEl = document.getElementById("steps");
+      const noteEl = document.getElementById("note");
+      const svgBox = document.getElementById("svgBox");
+      const legendEl = document.getElementById("legend");
+      const figPill = document.getElementById("figPill");
+      const prevBtn = document.getElementById("prevBtn");
+      const nextBtn = document.getElementById("nextBtn");
+
+      // ✅ どれかが null なら、分かりやすく表示して終了
+      const required = { stepsEl, noteEl, svgBox, legendEl, figPill, prevBtn, nextBtn };
+      for (const [k,v] of Object.entries(required)) {
+        if (!v) {
+          console.error("Missing element:", k);
+          document.body.innerHTML =
+            `<div style="color:#fff;font-family:system-ui;padding:20px">
+              <b>HTML内に必要な要素が見つかりません：</b> ${k}<br/>
+              コピペ時に id が欠けていないか確認してください。
+            </div>`;
+          return;
+        }
+      }
+
+      const PIPE = [
+        {
+          title: "1) 変数のエンコード（one-hot）",
+          tag: {text:"Compute", cls:"good"},
+          text: "x[v,c]=1 ⇔ 頂点vが色c\n各頂点に k 個のビット（色選択）を用意",
+          note: "まず『候補解 x』を量子状態として表現できる形にします。",
+          pill: "one-hot x[v,c]",
+          svg: svgEncode(),
+          legend: [
+            {c:"rgba(122,162,255,.95)", t:"変数 x[v,c]"},
+            {c:"rgba(169,179,211,.9)", t:"頂点ごとにk個"}
+          ]
+        },
+        {
+          title: "2) 頂点制約（Exactly-One）",
+          tag: {text:"Compute", cls:"good"},
+          text: "各頂点 v で\n• 少なくとも1色\n• 2色以上選ばない\n⇒ v_ok[v]=1",
+          note: "頂点ごとの『色は1つだけ』を ancilla に計算します。",
+          pill: "v_ok[v]",
+          svg: svgVertex(),
+          legend: [
+            {c:"rgba(122,255,196,.95)", t:"v_ok[v]"},
+            {c:"rgba(255,184,107,.9)", t:"atleast1 / pair checks"}
+          ]
+        },
+        {
+          title: "3) 辺制約（隣接は同色NG）",
+          tag: {text:"Compute", cls:"good"},
+          text: "各辺 (u,v) と各色 c で\ne_viol[e,c]= x[u,c] AND x[v,c]\n全部0なら e_ok[e]=1",
+          note: "『隣接頂点が同じ色』を検出して弾きます。",
+          pill: "e_ok[e]",
+          svg: svgEdge(),
+          legend: [
+            {c:"rgba(255,107,107,.9)", t:"e_viol（同色衝突）"},
+            {c:"rgba(122,255,196,.95)", t:"e_ok（制約OK）"}
+          ]
+        },
+        {
+          title: "4) すべてを AND して flag を作る",
+          tag: {text:"Compute", cls:"good"},
+          text: "flag=1 ⇔ 全制約を満たす\n（v_ok と e_ok をまとめる）",
+          note: "ここで f(x) を1bitに集約します（Groverの核）。",
+          pill: "flag = f(x)",
+          svg: svgFlag(),
+          legend: [
+            {c:"rgba(122,255,196,.95)", t:"flag"},
+            {c:"rgba(122,162,255,.85)", t:"MCXで集約"}
+          ]
+        },
+        {
+          title: "5) 位相反転してアンコンピュート",
+          tag: {text:"Mark+Uncompute", cls:"warn"},
+          text: "compute → Z(flag) → uncompute\nvalid の状態だけ位相が -1",
+          note: "ancilla を元に戻して、干渉（確率増幅）が壊れないようにします。",
+          pill: "phase flip on valid",
+          svg: svgPhase(),
+          legend: [
+            {c:"rgba(122,255,196,.95)", t:"valid → 位相 -1"},
+            {c:"rgba(169,179,211,.9)", t:"ancilla を |0⟩ に戻す"}
+          ]
+        },
+      ];
+
+      let idx = 0;
+
+      function renderSteps(){
+        stepsEl.innerHTML = "";
+        PIPE.forEach((s,i) => {
+          const div = document.createElement("div");
+          div.className = "step" + (i===idx ? " active" : "");
+          div.innerHTML = `
+            <div style="min-width:0;">
+              <div class="stepTitle">${s.title}</div>
+              <div class="stepText">${escapeHtml(s.text)}</div>
+            </div>
+            <div class="tag ${s.tag.cls}">${s.tag.text}</div>
+          `;
+          div.addEventListener("click", () => { idx=i; sync(); });
+          stepsEl.appendChild(div);
+        });
+      }
+
+      function sync(){
+        renderSteps();
+        const s = PIPE[idx];
+        noteEl.textContent = s.note;
+        figPill.textContent = s.pill;
+        svgBox.innerHTML = s.svg;
+
+        legendEl.innerHTML = "";
+        (s.legend||[]).forEach(item => {
+          const c = document.createElement("div");
+          c.className = "chip";
+          c.innerHTML = `<span class="dot" style="background:${item.c};"></span>${item.t}`;
+          legendEl.appendChild(c);
+        });
+      }
+
+      function escapeHtml(str){
+        return (str||"")
+          .replaceAll("&","&amp;")
+          .replaceAll("<","&lt;")
+          .replaceAll(">","&gt;")
+          .replaceAll('"',"&quot;")
+          .replaceAll("'","&#039;");
+      }
+
+      prevBtn.addEventListener("click", () => { idx = (idx - 1 + PIPE.length) % PIPE.length; sync(); });
+      nextBtn.addEventListener("click", () => { idx = (idx + 1) % PIPE.length; sync(); });
+
+      // --- SVGs (same as before, shortened for this reply) ---
+      function svgEncode(){ return `<svg viewBox="0 0 520 320" width="100%" height="100%"><rect x="18" y="18" width="484" height="284" rx="18" fill="rgba(0,0,0,.16)" stroke="rgba(255,255,255,.10)"/><text x="36" y="56" fill="rgba(233,238,252,.92)" font-size="18" font-weight="900">one-hot：x[v,c]</text><text x="36" y="84" fill="rgba(169,179,211,.95)" font-size="13">頂点ごとに k 個のビット</text></svg>`; }
+      function svgVertex(){ return `<svg viewBox="0 0 520 320" width="100%" height="100%"><rect x="18" y="18" width="484" height="284" rx="18" fill="rgba(0,0,0,.16)" stroke="rgba(255,255,255,.10)"/><text x="36" y="56" fill="rgba(233,238,252,.92)" font-size="18" font-weight="900">頂点制約</text></svg>`; }
+      function svgEdge(){ return `<svg viewBox="0 0 520 320" width="100%" height="100%"><rect x="18" y="18" width="484" height="284" rx="18" fill="rgba(0,0,0,.16)" stroke="rgba(255,255,255,.10)"/><text x="36" y="56" fill="rgba(233,238,252,.92)" font-size="18" font-weight="900">辺制約</text></svg>`; }
+      function svgFlag(){ return `<svg viewBox="0 0 520 320" width="100%" height="100%"><rect x="18" y="18" width="484" height="284" rx="18" fill="rgba(0,0,0,.16)" stroke="rgba(255,255,255,.10)"/><text x="36" y="56" fill="rgba(233,238,252,.92)" font-size="18" font-weight="900">flag = f(x)</text></svg>`; }
+      function svgPhase(){ return `<svg viewBox="0 0 520 320" width="100%" height="100%"><rect x="18" y="18" width="484" height="284" rx="18" fill="rgba(0,0,0,.16)" stroke="rgba(255,255,255,.10)"/><text x="36" y="56" fill="rgba(233,238,252,.92)" font-size="18" font-weight="900">Phase Oracle</text></svg>`; }
+
+      // boot
+      sync();
+    });
+  </script>
+</body>
+</html>

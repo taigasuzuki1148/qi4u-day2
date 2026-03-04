@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Workshop Flow (4 Steps)</title>
+  <style>
+    :root{
+      --bg:#0b0f19;
+      --panel: rgba(18,26,43,.92);
+      --text:#e9eefc;
+      --muted:#a9b3d3;
+      --line: rgba(122,162,255,.22);
+      --r: 18px;
+    }
+    *{ box-sizing:border-box; }
+    html, body{ height:100%; margin:0; }
+    body{
+      height:100%;
+      padding: 14px;
+      overflow:hidden;
+      color:var(--text);
+      font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", "Hiragino Sans", "Yu Gothic", sans-serif;
+      background:
+        radial-gradient(900px 520px at 55% 40%, rgba(122,162,255,.10), transparent 60%),
+        linear-gradient(180deg, #060912, var(--bg));
+    }
+
+    .wrap{
+      height:100%;
+      max-width: 1200px;
+      margin: 0 auto;
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+      min-height:0;
+    }
+
+    .row{
+      flex:1;
+      min-height:0;
+      display:grid;
+      grid-template-columns: 1fr 64px 1fr 64px 1fr 64px 1fr;
+      gap: 10px;
+      align-items: stretch;
+    }
+
+    .card{
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--r);
+      padding: 14px;
+      box-shadow: 0 14px 40px rgba(0,0,0,.34);
+      display:flex;
+      flex-direction:column;
+      justify-content:center;
+      min-height:0;
+    }
+
+    .step{
+      font-size: 13px;
+      font-weight: 900;
+      letter-spacing:.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin: 0 0 8px;
+    }
+    .title{
+      font-size: 20px;
+      font-weight: 900;
+      margin: 0 0 8px;
+      line-height:1.1;
+    }
+    .desc{
+      margin:0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height:1.45;
+    }
+
+    .arrow{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      min-height:0;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.14);
+      box-shadow: 0 10px 26px rgba(0,0,0,.25);
+    }
+    .arrow svg{ width: 34px; height: 34px; opacity:.9; }
+
+    @media (max-width: 980px){
+      body{ overflow:auto; }
+      .row{
+        grid-template-columns: 1fr;
+        gap: 12px;
+      }
+      .arrow{ display:none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="row">
+      <div class="card">
+        <div class="step">Step 1</div>
+        <div class="title">Real-world problem</div>
+        <p class="desc">
+          Example: exam timetabling.<br/>
+          Courses sharing students must not be scheduled at the same time.
+        </p>
+      </div>
+
+      <div class="arrow" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none">
+          <path d="M5 12h12" stroke="rgba(233,238,252,.85)" stroke-width="2.5" stroke-linecap="round"/>
+          <path d="M13 6l6 6-6 6" stroke="rgba(233,238,252,.85)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+
+      <div class="card">
+        <div class="step">Step 2</div>
+        <div class="title">Reduce to graph coloring</div>
+        <p class="desc">
+          Vertices = courses<br/>
+          Edges = “cannot share a time slot” constraints<br/>
+          Colors = time slots
+        </p>
+      </div>
+
+      <div class="arrow" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none">
+          <path d="M5 12h12" stroke="rgba(233,238,252,.85)" stroke-width="2.5" stroke-linecap="round"/>
+          <path d="M13 6l6 6-6 6" stroke="rgba(233,238,252,.85)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+
+      <div class="card">
+        <div class="step">Step 3</div>
+        <div class="title">Build an oracle</div>
+        <p class="desc">
+          Create a circuit that checks constraints.<br/>
+          Mark valid assignments (phase flip).
+        </p>
+      </div>
+
+      <div class="arrow" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none">
+          <path d="M5 12h12" stroke="rgba(233,238,252,.85)" stroke-width="2.5" stroke-linecap="round"/>
+          <path d="M13 6l6 6-6 6" stroke="rgba(233,238,252,.85)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+
+      <div class="card">
+        <div class="step">Step 4</div>
+        <div class="title">Solve with Grover</div>
+        <p class="desc">
+          Run Grover iterations, then measure.<br/>
+          The result concentrates on a valid coloring.
+        </p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

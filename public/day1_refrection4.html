@@ -1,0 +1,902 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Soccer Kit Assignment → Graph Coloring → encode / search / decode (k=3, SAT)</title>
+
+  <style>
+    :root{
+      /* compact demo-like tokens */
+      --bg:#0b0f19;
+      --panel: rgba(18,26,43,.92);
+      --text:#e9eefc;
+      --muted:#a9b3d3;
+      --accent:#7aa2ff;
+      --accent2:#6ee7ff;
+      --good:#34d399;
+      --warn:#fbbf24;
+      --bad:#fb7185;
+      --border: rgba(122,162,255,.18);
+      --border2: rgba(255,255,255,.10);
+      --shadow: 0 10px 30px rgba(0,0,0,.35);
+    }
+
+    *{ box-sizing:border-box; }
+
+    /* ✅ iframe height-fit */
+    html, body { height:100%; margin:0; }
+
+    body{
+      font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+      background: linear-gradient(180deg, #060912, var(--bg));
+      color: var(--text);
+
+      height:100%;
+      overflow:hidden;
+
+      display:grid;
+      grid-template-columns: minmax(280px, 360px) 1fr;
+      gap:12px;
+      padding:12px;
+    }
+
+    /* ✅ Left card */
+    .card{
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      box-shadow: var(--shadow);
+      height:100%;
+      overflow:hidden;
+
+      display:flex;
+      flex-direction:column;
+      min-height:0; /* important */
+    }
+
+    .head{
+      padding: 10px 10px 8px;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+    }
+    .head h1{
+      margin:0;
+      font-size: 15px;
+      line-height:1.2;
+      font-weight: 900;
+    }
+    .subtitle{
+      margin-top:6px;
+      font-size: 11px;
+      color: var(--muted);
+      line-height: 1.35;
+    }
+
+    /* ✅ compact tabs (left) */
+    .tabs{
+      padding: 8px 10px;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+      display:flex; gap:8px; flex-wrap:wrap; align-items:center;
+    }
+    .tab{
+      display:flex; align-items:center; gap:8px;
+      padding: 7px 9px;
+      border-radius: 12px;
+      background: rgba(15,23,40,.55);
+      border: 1px solid rgba(122,162,255,.25);
+      cursor:pointer; user-select:none;
+      transition: .18s ease;
+      white-space: nowrap;
+    }
+    .tab:hover{ transform: translateY(-1px); border-color: rgba(122,162,255,.5); }
+    .tab:active{ transform: translateY(1px); }
+    .tab.active{
+      border-color: rgba(110,231,255,.45);
+      background: rgba(110,231,255,.10);
+      box-shadow: 0 10px 25px rgba(110,231,255,.08);
+    }
+    .badge{
+      width:22px; height:22px; display:grid; place-items:center;
+      border-radius: 9px;
+      background: rgba(110,231,255,.10);
+      border: 1px solid rgba(110,231,255,.22);
+      color: var(--accent2);
+      font-weight: 900;
+      font-size: 11px;
+      flex:0 0 auto;
+    }
+    .tlabel{ font-size:12px; font-weight: 900; }
+
+    /* ✅ left inner content scroll */
+    .panel-scroll{
+      padding: 10px 10px 12px;
+      overflow:auto;
+      min-height:0;
+    }
+
+    /* typography similar to compact demo */
+    h2{
+      margin:0 0 6px;
+      font-size: 12px;
+      color: var(--muted);
+      font-weight: 700;
+      letter-spacing: .2px;
+      display:flex; align-items:center; gap:8px;
+    }
+    p, li{
+      color: var(--muted);
+      line-height: 1.45;
+      margin: 6px 0;
+      font-size: 12px;
+    }
+    ul{ margin: 8px 0 0 18px; padding:0; }
+
+    .divider{
+      height:1px;
+      background: rgba(255,255,255,.08);
+      margin: 10px 0;
+    }
+
+    .callout{
+      margin-top: 8px;
+      padding: 8px 10px;
+      border-radius: 12px;
+      background: rgba(122,162,255,.10);
+      border: 1px solid rgba(122,162,255,.22);
+      color: rgba(233,238,252,.95);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .pill{
+      display:inline-flex; align-items:center; gap:8px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      border:1px solid rgba(255,255,255,.12);
+      background: rgba(0,0,0,.18);
+      font-weight: 900;
+      font-size: 11px;
+      color: rgba(233,238,252,.92);
+      margin-right: 6px;
+      margin-top: 6px;
+      white-space:nowrap;
+    }
+    .pill i{ width:10px; height:10px; border-radius:99px; display:inline-block; background: rgba(255,255,255,.18); }
+
+    code{
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-size: 11px;
+      padding: 2px 6px;
+      border-radius: 8px;
+      border:1px solid rgba(255,255,255,.12);
+      background: rgba(0,0,0,.22);
+      color: var(--text);
+    }
+
+    /* tools row (inputs/buttons) in left card */
+    input[type="text"]{
+      width: 100%;
+      max-width: 260px;
+      padding: 8px 9px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(0,0,0,.18);
+      color: rgba(233,238,252,.92);
+      font-weight: 900;
+      font-size: 12px;
+      outline: none;
+    }
+    button{
+      appearance:none;
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(15,23,40,.55);
+      color: var(--text);
+      padding: 8px 9px;
+      border-radius: 12px;
+      cursor:pointer;
+      transition: .18s ease;
+      font-weight: 900;
+      font-size: 12px;
+    }
+    button:hover{ transform: translateY(-1px); border-color: rgba(122,162,255,.5); }
+    button:active{ transform: translateY(1px); opacity:.9; }
+    button:disabled{ opacity:.45; cursor:not-allowed; transform:none; }
+
+    .smallNote{ font-size: 11px; color: var(--muted); margin-top: 6px; }
+
+    .colorPill{
+      display:inline-flex; align-items:center; gap:8px;
+      padding: 4px 10px; border-radius: 999px;
+      border:1px solid rgba(255,255,255,.12);
+      background: rgba(0,0,0,.18);
+      font-weight:900;
+      font-size: 11px;
+      color: rgba(233,238,252,.92);
+    }
+    .colorPill i{ width:10px;height:10px;border-radius:99px; display:inline-block; }
+
+    table{ width:100%; border-collapse: collapse; }
+    th, td{ padding: 7px 8px; font-size: 12px; text-align:left; color: rgba(233,238,252,.92); }
+    th{ color: var(--muted); font-weight: 900; border-bottom: 1px solid rgba(255,255,255,.10); }
+    td{ border-bottom: 1px solid rgba(255,255,255,.06); }
+
+    .miniTable{
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.18);
+      padding: 8px 10px;
+      margin-top: 10px;
+    }
+
+    /* ✅ Right visual panel (canvas-like) */
+    .visual{
+      height:100%;
+      overflow:hidden;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+      background:
+        radial-gradient(1200px 800px at 60% 40%, rgba(122,162,255,.12), transparent 60%),
+        radial-gradient(900px 600px at 30% 70%, rgba(110,231,255,.10), transparent 60%),
+        #070b14;
+
+      display:flex;
+      flex-direction:column;
+      min-height:0;
+    }
+
+    .toolbar{
+      display:flex; gap:10px; flex-wrap:wrap;
+      align-items:center; justify-content:space-between;
+      padding: 10px 12px;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+      background: rgba(0,0,0,.12);
+    }
+    .tools{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+    .status{
+      font-size: 11px;
+      color: var(--muted);
+      display:flex; gap:10px; align-items:center; flex-wrap:wrap;
+    }
+    .status b{ color: rgba(233,238,252,.92); }
+
+    .svgBox{
+      flex:1;
+      min-height:0;
+      overflow:hidden;
+      padding: 10px;
+      display:flex;
+    }
+    .svgBox > .frame{
+      width:100%;
+      height:100%;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.18);
+      overflow:hidden;
+    }
+    .svgBox svg{ width:100%; height:100%; display:block; }
+
+    .log{
+      border-top: 1px solid rgba(255,255,255,.08);
+      background: rgba(0,0,0,.18);
+      padding: 10px 12px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-size: 11px;
+      color: rgba(233,238,252,.90);
+      line-height: 1.6;
+      max-height: 130px;
+      overflow:auto;
+      white-space: pre-wrap;
+      display:none;
+    }
+    .log.on{ display:block; }
+
+    /* ✅ low-height safeguard */
+    @media (max-height: 420px){
+      body{
+        grid-template-columns: 1fr;
+        grid-template-rows: 1fr 1fr;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <!-- LEFT -->
+  <div class="card">
+    <div class="head">
+      <h1>Soccer Kit Assignment</h1>
+      <div class="subtitle">Real-world → encode → compute → decode (k=3, SAT-style)</div>
+    </div>
+
+    <div class="tabs" id="tabs">
+      <div class="tab active" data-view="world">
+        <div class="badge">0</div><div><div class="tlabel">world</div></div>
+      </div>
+      <div class="tab" data-view="encode">
+        <div class="badge">1</div><div><div class="tlabel">encode</div></div>
+      </div>
+      <div class="tab" data-view="compute">
+        <div class="badge">2</div><div><div class="tlabel">compute</div></div>
+      </div>
+      <div class="tab" data-view="decode">
+        <div class="badge">3</div><div><div class="tlabel">decode</div></div>
+      </div>
+    </div>
+
+    <div class="panel-scroll">
+      <h2 id="leftTitle">Real-world problem</h2>
+      <div id="leftBody"></div>
+    </div>
+  </div>
+
+  <!-- RIGHT -->
+  <div class="visual">
+    <div class="toolbar">
+      <div class="tools" id="toolsLeft"></div>
+      <div class="status">
+        <span>k=<b id="kText">3</b></span>
+        <span>bits=<b id="bitsText">00011000</b></span>
+        <span>conflicts=<b id="confText">0</b></span>
+      </div>
+    </div>
+
+    <div class="svgBox">
+      <div class="frame">
+        <svg id="viz" viewBox="0 0 800 500" aria-label="static diagram"></svg>
+      </div>
+    </div>
+
+    <div class="log" id="log"></div>
+  </div>
+
+  <script>
+    // --- k = 3 colors ---
+    // Use 2 bits per team for readability, but only allow 3 codes:
+    // Red=00, Blue=01, Green=10  (11 is invalid / unused)
+    const palette = [
+      {name:"Red",   bits:"00", fill:"#ff5b6e"},
+      {name:"Blue",  bits:"01", fill:"#4ea5ff"},
+      {name:"Green", bits:"10", fill:"#34d399"},
+    ];
+    const INVALID_BITS = "11";
+    const bit2color = Object.fromEntries(palette.map((p,i)=>[p.bits, i]));
+
+    // --- Constraints (NOT complete graph) and SAT for k=3 ---
+    // Use K4 minus one edge (remove B–C). This is 3-colorable.
+    // We'll present them as multiple days / overlaps to look "messy" but still solvable.
+    const fixture = [
+      {day:"Matchday 1", games:[["A","B"],["C","D"]]},
+      {day:"Matchday 2", games:[["A","C"],["B","D"]]},
+      {day:"Matchday 3", games:[["A","D"]]},
+      // Note: no B–C constraint, so it is not complete and becomes 3-colorable.
+    ];
+
+    // Graph constraints (K4 minus one edge: remove B–C)
+    const G = {
+      nodes: [
+        {id:"A", x:250, y:140, c:-1},
+        {id:"B", x:560, y:180, c:-1},
+        {id:"C", x:220, y:380, c:-1},
+        {id:"D", x:560, y:380, c:-1},
+      ],
+      edges: [
+        {u:"A", v:"B", label:"A–B"},
+        {u:"A", v:"C", label:"A–C"},
+        {u:"A", v:"D", label:"A–D"},
+        {u:"B", v:"D", label:"B–D"},
+        {u:"C", v:"D", label:"C–D"},
+        // Missing edge: B–C (intentionally absent)
+      ]
+    };
+
+    // Example bits (may or may not satisfy). We'll start with a valid one:
+    // A=Red(00), B=Blue(01), C=Blue(01), D=Green(10) => 00 01 01 10 = 00010110
+    let bits = "10010110";
+    const k = 3;
+
+    let view = "world";
+
+    const tabs = document.getElementById("tabs");
+    const leftTitle = document.getElementById("leftTitle");
+    const leftBody = document.getElementById("leftBody");
+    const toolsLeft = document.getElementById("toolsLeft");
+    const confText = document.getElementById("confText");
+    const kText = document.getElementById("kText");
+    const bitsText = document.getElementById("bitsText");
+    const logEl = document.getElementById("log");
+
+    kText.textContent = k;
+    bitsText.textContent = bits;
+
+    const id2node = () => Object.fromEntries(G.nodes.map(n=>[n.id,n]));
+
+    function parseBitsToAssignment(bitstr){
+      const ids = ["A","B","C","D"];
+      const assign = {};
+      let invalidCode = false;
+      for(let i=0;i<ids.length;i++){
+        const two = bitstr.slice(i*2, i*2+2);
+        if(two.length !== 2) { assign[ids[i]] = -1; continue; }
+        if(two === INVALID_BITS) { assign[ids[i]] = -1; invalidCode = true; continue; }
+        assign[ids[i]] = (bit2color[two] !== undefined) ? bit2color[two] : -1;
+      }
+      assign.__invalid = invalidCode;
+      return assign;
+    }
+
+    function assignmentToBits(assign){
+      const ids = ["A","B","C","D"];
+      return ids.map(id=>{
+        const c = assign[id];
+        return (c>=0 && c<palette.length) ? palette[c].bits : INVALID_BITS;
+      }).join("");
+    }
+
+    function applyBits(bitstr, silent=false){
+      bits = (bitstr || "").replace(/\s+/g,"");
+      bitsText.textContent = bits;
+
+      const assign = parseBitsToAssignment(bits);
+      for(const n of G.nodes) n.c = assign[n.id] ?? -1;
+
+      renderRight();
+      updateConflicts(assign.__invalid);
+      renderDecodeTableIfNeeded();
+
+      if(!silent && view === "compute"){
+        setLog(`Applied bits: ${bits}`, true);
+      }
+    }
+
+    function countConflicts(){
+      const m = id2node();
+      let c = 0;
+      for(const e of G.edges){
+        const a = m[e.u], b = m[e.v];
+        if(a.c >= 0 && b.c >= 0 && a.c === b.c) c++;
+      }
+      return c;
+    }
+
+    function updateConflicts(hasInvalid=false){
+      const c = countConflicts();
+      confText.textContent = hasInvalid ? `${c} + invalid(11)` : `${c}`;
+    }
+
+    // === SVG drawing (static) ===
+    const svg = document.getElementById("viz");
+    const mk = (tag, attrs={})=>{
+      const el = document.createElementNS("http://www.w3.org/2000/svg", tag);
+      for(const [k,v] of Object.entries(attrs)) el.setAttribute(k, v);
+      return el;
+    };
+    function clearSVG(){ while(svg.firstChild) svg.removeChild(svg.firstChild); }
+
+    function drawFixtureTable(){
+      clearSVG();
+
+      const bg = mk("rect", {x:20,y:20,width:760,height:460,rx:18, fill:"rgba(0,0,0,.18)", stroke:"rgba(255,255,255,.10)"});
+      svg.appendChild(bg);
+
+      const title = mk("text", {x:40,y:62, "font-size":"30", "font-weight":"900", fill:"rgba(234,240,255,.92)"});
+      title.textContent = "Fixture table (constraints)";
+      svg.appendChild(title);
+
+      const sub = mk("text", {x:40,y:86, "font-size":"15", "font-weight":"800", fill:"rgba(167,179,214,.95)"});
+      sub.textContent = "Each listed pair must NOT wear the same color (k=3 colors available).";
+      svg.appendChild(sub);
+
+      let y = 115;
+      for(const d of fixture){
+        const day = mk("text", {x:40,y:y, "font-size":"20", "font-weight":"900", fill:"rgba(110,231,255,.92)"});
+        day.textContent = d.day;
+        svg.appendChild(day);
+        y += 18;
+
+        for(const [t1,t2] of d.games){
+          const row = mk("rect", {x:40,y:y,width:720,height:44,rx:14, fill:"rgba(18,26,51,.45)", stroke:"rgba(255,255,255,.10)"});
+          svg.appendChild(row);
+
+          const left = mk("text", {x:70,y:y+29, "font-size":"15", "font-weight":"900", fill:"rgba(234,240,255,.92)"});
+          left.textContent = t1;
+          svg.appendChild(left);
+
+          const vs = mk("text", {x:390,y:y+29, "font-size":"13", "font-weight":"900", fill:"rgba(167,179,214,.95)", "text-anchor":"middle"});
+          vs.textContent = "≠";
+          svg.appendChild(vs);
+
+          const right = mk("text", {x:710,y:y+29, "font-size":"15", "font-weight":"900", fill:"rgba(234,240,255,.92)", "text-anchor":"end"});
+          right.textContent = t2;
+          svg.appendChild(right);
+
+          y += 56;
+        }
+        y += 6;
+        if(y > 420) break;
+      }
+
+      const footer = mk("text", {x:40,y:455, "font-size":"13", "font-weight":"800", fill:"rgba(167,179,214,.95)"});
+      footer.textContent = "Interpretation: each row adds an inequality constraint between two teams.";
+      svg.appendChild(footer);
+    }
+
+    function drawGraphColored(showColors){
+      clearSVG();
+
+      const bg = mk("rect", {x:20,y:20,width:760,height:460,rx:18, fill:"rgba(0,0,0,.18)", stroke:"rgba(255,255,255,.10)"});
+      svg.appendChild(bg);
+
+      const title = mk("text", {x:40,y:62, "font-size":"30", "font-weight":"900", fill:"rgba(234,240,255,.92)"});
+      title.textContent = "Constraint graph (graph coloring)";
+      svg.appendChild(title);
+
+      const subtitle = mk("text", {x:40,y:86, "font-size":"17", "font-weight":"800", fill:"rgba(167,179,214,.95)"});
+      subtitle.textContent = "Edge = must be different. Here it is K4 minus one edge (missing B–C), so it is 3-colorable.";
+      svg.appendChild(subtitle);
+
+      const m = id2node();
+
+      for(const e of G.edges){
+        const a = m[e.u], b = m[e.v];
+        const same = showColors && a.c>=0 && b.c>=0 && a.c===b.c;
+        const stroke = same ? getComputedStyle(document.documentElement).getPropertyValue("--bad").trim()
+                            : "rgba(110,231,255,.35)";
+        const w = same ? 4 : 3;
+
+        const line = mk("line", {x1:a.x,y1:a.y,x2:b.x,y2:b.y, stroke, "stroke-width":w, "stroke-linecap":"round"});
+        svg.appendChild(line);
+
+        const lab = mk("text", {x:(a.x+b.x)/2, y:(a.y+b.y)/2 - 10, "text-anchor":"middle",
+          "font-size":"12", "font-weight":"800", fill:"rgba(167,179,214,.95)"});
+        lab.textContent = e.label;
+        svg.appendChild(lab);
+      }
+
+      for(const n of G.nodes){
+        const paint = (!showColors || n.c<0)
+          ? {fill:"rgba(255,255,255,.14)", stroke:"rgba(255,255,255,.28)", text:"rgba(234,240,255,.95)"}
+          : {fill:palette[n.c].fill, stroke:"rgba(255,255,255,.22)", text:"rgba(234,240,255,.95)"};
+
+        const ring = mk("circle", {cx:n.x,cy:n.y,r:34, fill:"transparent",
+          stroke:(showColors && n.c>=0) ? "rgba(255,255,255,.10)" : "transparent",
+          "stroke-width":10, opacity:(showColors && n.c>=0) ? "0.18":"0"});
+        svg.appendChild(ring);
+
+        const c = mk("circle", {cx:n.x,cy:n.y,r:26, fill:paint.fill, stroke:paint.stroke, "stroke-width":2});
+        svg.appendChild(c);
+
+        const t = mk("text", {x:n.x,y:n.y+5, "text-anchor":"middle", "font-size":"16", "font-weight":"900", fill:paint.text});
+        t.textContent = n.id;
+        svg.appendChild(t);
+
+        if(showColors && n.c>=0){
+          const label = mk("text", {x:n.x,y:n.y+44, "text-anchor":"middle", "font-size":"12", "font-weight":"900",
+            fill:"rgba(234,240,255,.92)"});
+          label.textContent = palette[n.c].name;
+          svg.appendChild(label);
+        }
+      }
+    }
+
+    function renderRight(){
+      if(view === "world"){
+        drawFixtureTable();
+        logEl.classList.remove("on");
+        return;
+      }
+      const showColors = (bits.length === 8);
+      drawGraphColored(showColors);
+    }
+
+    // === Left content + tools ===
+    let computeBtn = null;
+    let stopBtn = null;
+    let solving = false;
+
+    function setLog(text, append=false){
+      logEl.classList.add("on");
+      if(!append) logEl.textContent = text;
+      else logEl.textContent += "\n" + text;
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    function renderLeft(){
+      toolsLeft.innerHTML = "";
+      logEl.classList.remove("on");
+
+      if(view === "world"){
+        leftTitle.textContent = "Real-world problem (soccer)";
+        leftBody.innerHTML = `
+          <p>
+            We have a fixture table, but only <b>3 kit colors</b> are available.
+          </p>
+          <p>
+            Every listed pair of teams must wear <b>different colors</b>.
+          </p>
+          <div class="callout">
+            Teams: <b>A, B, C, D</b><br/>
+            Available colors (k=3): <b>Red, Blue, Green</b><br/>
+            Question: <b>Find a conflict-free assignment.</b>
+          </div>
+        `;
+      }
+
+      if(view === "encode"){
+        leftTitle.textContent = "encode (represent the choices with 0/1)";
+        leftBody.innerHTML = `
+          <p>
+            We keep using <b>2 bits per team</b> (easy to read), but with <b>k=3</b> we only allow three codes:
+          </p>
+          <div>
+            <span class="pill"><i style="background:${palette[0].fill}"></i>Red = <code>00</code></span>
+            <span class="pill"><i style="background:${palette[1].fill}"></i>Blue = <code>01</code></span>
+            <span class="pill"><i style="background:${palette[2].fill}"></i>Green = <code>10</code></span>
+            <span class="pill"><i style="background:rgba(255,255,255,.18)"></i><code>11</code> is invalid</span>
+          </div>
+
+          <div class="callout">
+            Bitstring format (fixed order): <code>[A(2)] [B(2)] [C(2)] [D(2)]</code><br/>
+            Example: <code>10010110</code> → <code>10 01 01 10</code> → A: Green, B: Blue, C: Blue, D: Green
+          </div>
+
+          <div class="callout">
+            The fixture constraints are encoded as a graph: teams are vertices; each “must be different” becomes an edge.
+          </div>
+        `;
+
+        const inp = document.createElement("input");
+        inp.type = "text";
+        inp.value = bits;
+        inp.placeholder = "e.g., 00010110";
+        inp.addEventListener("change", ()=> applyBits(inp.value));
+        toolsLeft.appendChild(inp);
+
+        const btn = document.createElement("button");
+        btn.textContent = "Apply bitstring";
+        btn.addEventListener("click", ()=> applyBits(inp.value));
+        toolsLeft.appendChild(btn);
+
+        const preset = document.createElement("button");
+        preset.textContent = "Example (valid): 00010110";
+        preset.addEventListener("click", ()=> { inp.value="00010110"; applyBits("00010110"); });
+        toolsLeft.appendChild(preset);
+
+        const note = document.createElement("div");
+        note.className = "smallNote";
+        note.textContent = "Tip: '11' is invalid for k=3 (treated as unassigned).";
+        toolsLeft.appendChild(note);
+      }
+
+      if(view === "compute"){
+        leftTitle.textContent = "compute (interactive search)";
+        leftBody.innerHTML = `
+          <p>
+            We search over candidate assignments (bitstrings) and check whether all edges satisfy “different colors”.
+          </p>
+          <div class="callout">
+            Click the button to automatically search for a valid assignment.<br/>
+            It tries random candidates first, then a guaranteed scan over all <b>3^4 = 81</b> assignments.
+          </div>
+          <div class="smallNote">
+            This graph is <b>not complete</b> (missing B–C), so a 3-color solution exists.
+          </div>
+        `;
+
+        computeBtn = document.createElement("button");
+        computeBtn.textContent = "Run search (auto)";
+        computeBtn.addEventListener("click", runSearch);
+        toolsLeft.appendChild(computeBtn);
+
+        stopBtn = document.createElement("button");
+        stopBtn.textContent = "Stop";
+        stopBtn.disabled = true;
+        stopBtn.addEventListener("click", ()=> { solving = false; setLog("Stopped.", true); });
+        toolsLeft.appendChild(stopBtn);
+
+        const reset = document.createElement("button");
+        reset.textContent = "Reset to a valid example";
+        reset.addEventListener("click", ()=> applyBits("00010110"));
+        toolsLeft.appendChild(reset);
+      }
+
+      if(view === "decode"){
+        leftTitle.textContent = "decode (turn bits back into a meaningful answer)";
+        leftBody.innerHTML = `
+          <p>
+            Decoding reads two bits per team (A, B, C, D) and maps them back to a color.
+          </p>
+
+          <div class="callout">
+            Mapping for k=3: <code>00→Red</code>, <code>01→Blue</code>, <code>10→Green</code> (and <code>11</code> is invalid).
+          </div>
+
+          <div class="miniTable">
+            <table>
+              <thead><tr><th>Team</th><th>Color</th><th>2 bits</th></tr></thead>
+              <tbody id="tbody"></tbody>
+            </table>
+          </div>
+        `;
+      }
+    }
+
+    function renderDecodeTableIfNeeded(){
+      if(view !== "decode") return;
+      const tbody = document.getElementById("tbody");
+      if(!tbody) return;
+
+      tbody.innerHTML = "";
+      const order = ["A","B","C","D"];
+      const m = id2node();
+
+      for(const id of order){
+        const n = m[id];
+        const tr = document.createElement("tr");
+
+        const tdTeam = document.createElement("td");
+        tdTeam.textContent = id;
+
+        const tdColor = document.createElement("td");
+        const tdBits  = document.createElement("td");
+
+        if(n.c < 0){
+          tdColor.textContent = "(invalid or unassigned)";
+          tdColor.style.color = "rgba(169,179,211,.95)";
+          tdBits.textContent = "11 (invalid)";
+        } else {
+          const pill = document.createElement("span");
+          pill.className = "colorPill";
+          const dot = document.createElement("i");
+          dot.style.background = palette[n.c].fill;
+          const name = document.createElement("span");
+          name.textContent = palette[n.c].name;
+          pill.appendChild(dot);
+          pill.appendChild(name);
+          tdColor.appendChild(pill);
+          tdBits.textContent = palette[n.c].bits;
+        }
+
+        tr.appendChild(tdTeam);
+        tr.appendChild(tdColor);
+        tr.appendChild(tdBits);
+        tbody.appendChild(tr);
+      }
+    }
+
+    // ===== Interactive compute: auto search for k=3 =====
+    function activeAdj(){
+      const adj = {A:new Set(),B:new Set(),C:new Set(),D:new Set()};
+      for(const e of G.edges){
+        adj[e.u].add(e.v);
+        adj[e.v].add(e.u);
+      }
+      return adj;
+    }
+
+    function isValid(assign, adj){
+      for(const u of Object.keys(adj)){
+        for(const v of adj[u]){
+          if(assign[u] === assign[v]) return false;
+        }
+      }
+      return true;
+    }
+
+    function randomAssign(){
+      return {
+        A: Math.floor(Math.random()*k),
+        B: Math.floor(Math.random()*k),
+        C: Math.floor(Math.random()*k),
+        D: Math.floor(Math.random()*k),
+      };
+    }
+
+    function applyAssignment(assign, silent=false){
+      const m = id2node();
+      for(const id of ["A","B","C","D"]) m[id].c = assign[id];
+      bits = assignmentToBits(assign); // never uses 11
+      bitsText.textContent = bits;
+
+      renderRight();
+      updateConflicts(false);
+      if(view === "decode") renderDecodeTableIfNeeded();
+
+      if(!silent){
+        setLog(`Try: ${bits} (conflicts=${countConflicts()})`, true);
+      }
+    }
+
+    function sleep(ms){ return new Promise(r=>setTimeout(r, ms)); }
+
+    async function runSearch(){
+      if(view !== "compute") return;
+      if(solving) return;
+
+      solving = true;
+      computeBtn.disabled = true;
+      stopBtn.disabled = false;
+      setLog("Searching...", false);
+
+      const adj = activeAdj();
+
+      // Phase 1: random tries (animated)
+      for(let i=0;i<25 && solving;i++){
+        const cand = randomAssign();
+        applyAssignment(cand, true);
+        setLog(`Random try ${i+1}: ${assignmentToBits(cand)} (conflicts=${countConflicts()})`, true);
+        await sleep(80);
+        if(isValid(cand, adj)){
+          applyAssignment(cand, true);
+          setLog(`✅ Found a valid assignment: ${assignmentToBits(cand)}`, true);
+          solving = false;
+          break;
+        }
+      }
+
+      // Phase 2: systematic search over 3^4 = 81 assignments
+      if(solving){
+        setLog("Switching to systematic search over all 3^4 = 81 assignments...", true);
+        const colors = [0,1,2];
+        let tested = 0;
+
+        outer:
+        for(const a of colors){
+          for(const b of colors){
+            for(const c of colors){
+              for(const d of colors){
+                if(!solving) break outer;
+                const cand = {A:a,B:b,C:c,D:d};
+                tested++;
+                if(tested % 5 === 0){
+                  applyAssignment(cand, true);
+                  setLog(`Test #${tested}: ${assignmentToBits(cand)} (conflicts=${countConflicts()})`, true);
+                  await sleep(35);
+                }
+                if(isValid(cand, adj)){
+                  applyAssignment(cand, true);
+                  setLog(`✅ Found a valid assignment after ${tested} tests: ${assignmentToBits(cand)}`, true);
+                  solving = false;
+                  break outer;
+                }
+              }
+            }
+          }
+        }
+
+        if(solving){
+          setLog("❌ No valid assignment exists (unexpected here).", true);
+          solving = false;
+        }
+      }
+
+      computeBtn.disabled = false;
+      stopBtn.disabled = true;
+    }
+
+    // === View switching ===
+    function setView(v){
+      view = v;
+      [...tabs.querySelectorAll(".tab")].forEach(el=>{
+        el.classList.toggle("active", el.dataset.view === view);
+      });
+
+      renderLeft();
+      renderRight();
+      applyBits(bits, true);
+      renderDecodeTableIfNeeded();
+    }
+
+    tabs.addEventListener("click", (e)=>{
+      const tab = e.target.closest(".tab");
+      if(!tab) return;
+      setView(tab.dataset.view);
+    });
+
+    // init
+    applyBits(bits, true);
+    setView("world");
+  </script>
+</body>
+</html>

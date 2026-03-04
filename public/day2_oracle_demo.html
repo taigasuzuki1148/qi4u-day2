@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Oracle Query Demo (Compact)</title>
+  <style>
+    :root{
+      --ink:#eaf0ff; --muted:#a7b3d6;
+      --border: rgba(255,255,255,.12);
+      --bg: #070a15;
+      --bg2: rgba(255,255,255,.06);
+      --good:#86efac; --bad:#fca5a5;
+      --accent:#6ee7ff;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      background: linear-gradient(180deg, #050711, #070a15 60%, #050711);
+      color:var(--ink);
+      font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    }
+    .wrap{
+      height:100%;
+      padding: 6px;
+    }
+    .bar{
+      height:100%;
+      display:flex;
+      align-items:center;
+      gap:10px;
+      padding: 8px 10px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: rgba(0,0,0,.35);
+      overflow:hidden;
+    }
+    .title{
+      font-weight:900;
+      font-size: 12.5px;
+      color: rgba(234,240,255,.92);
+      white-space:nowrap;
+    }
+    .sub{
+      font-size: 12px;
+      color: var(--muted);
+      white-space:nowrap;
+    }
+    .spacer{flex:1}
+    input{
+      width: 180px;
+      max-width: 34vw;
+      padding: 7px 9px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.06);
+      color: var(--ink);
+      font-weight: 900;
+      font-size: 12.5px;
+      outline:none;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    }
+    .btn{
+      padding: 7px 9px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.08);
+      color: var(--ink);
+      font-weight: 900;
+      font-size: 12px;
+      cursor:pointer;
+      white-space:nowrap;
+    }
+    .btn:hover{background: rgba(255,255,255,.12)}
+    .btn:disabled{opacity:.5; cursor:not-allowed}
+    .pill{
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.06);
+      font-weight: 900;
+      font-size: 12px;
+      white-space:nowrap;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    }
+    .ok{border-color: rgba(134,239,172,.45); color: var(--good);}
+    .ng{border-color: rgba(252,165,165,.45); color: var(--bad);}
+    .fmt{border-color: rgba(110,231,255,.35); color: rgba(234,240,255,.92);}
+    .count{
+      font-size: 12px;
+      color: var(--muted);
+      white-space:nowrap;
+    }
+    .mono{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;}
+    @media (max-width: 720px){
+      .sub{display:none}
+      .btn.rand{display:none}
+      input{width: 140px}
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="bar">
+      <div>
+        <div class="title">Oracle (classical queries)</div>
+        <div class="sub">try candidates → ask oracle → O(N) worst case</div>
+      </div>
+
+      <div class="spacer"></div>
+
+      <input id="inp" value="00000000" aria-label="bitstring input" />
+      <button class="btn" id="btnQuery">Query</button>
+      <button class="btn rand" id="btnRand">Random</button>
+      <button class="btn" id="btnReset">Reset</button>
+
+      <span class="pill fmt" id="out">oracle: …</span>
+      <span class="count">queries: <span class="mono" id="n">0</span></span>
+    </div>
+  </div>
+
+  <script>
+    // ✅ Change this to your “correct answer”
+    const SECRET = "00010110";
+    const LEN = 8;
+
+    const inp = document.getElementById("inp");
+    const out = document.getElementById("out");
+    const n = document.getElementById("n");
+
+    const btnQuery = document.getElementById("btnQuery");
+    const btnRand = document.getElementById("btnRand");
+    const btnReset = document.getElementById("btnReset");
+
+    let queries = 0;
+
+    function isValid(s){
+      return /^[01]+$/.test(s) && s.length === LEN;
+    }
+    function oracle(x){
+      return x === SECRET;
+    }
+
+    function render(){
+      const x = inp.value.trim();
+      btnQuery.disabled = !isValid(x);
+
+      if(!isValid(x)){
+        out.className = "pill fmt";
+        out.textContent = "oracle: format error";
+        return;
+      }
+      const ok = oracle(x);
+      out.className = "pill " + (ok ? "ok" : "ng");
+      out.textContent = ok ? "oracle: ✅ VALID" : "oracle: ❌ INVALID";
+    }
+
+    btnQuery.addEventListener("click", ()=>{
+      const x = inp.value.trim();
+      if(!isValid(x)) return;
+      queries += 1;
+      n.textContent = String(queries);
+      render();
+    });
+
+    btnRand.addEventListener("click", ()=>{
+      let s = "";
+      for(let i=0;i<LEN;i++) s += Math.random() < 0.5 ? "0" : "1";
+      inp.value = s;
+      render();
+    });
+
+    btnReset.addEventListener("click", ()=>{
+      inp.value = "00000000";
+      queries = 0;
+      n.textContent = "0";
+      render();
+    });
+
+    inp.addEventListener("input", render);
+    render();
+  </script>
+</body>
+</html>

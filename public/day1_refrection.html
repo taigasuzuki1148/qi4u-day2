@@ -1,0 +1,383 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Day1 Review: encode → compute → decode</title>
+  <style>
+    :root{
+      --bg:#0b1020; --card:#121a33; --ink:#eaf0ff; --muted:#a7b3d6;
+      --accent:#6ee7ff; --accent2:#a78bfa; --good:#34d399;
+      --shadow: 0 18px 50px rgba(0,0,0,.35);
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0; min-height:100vh; display:grid; place-items:center;
+      font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", "Noto Sans JP", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+      background: radial-gradient(1200px 700px at 20% 10%, rgba(110,231,255,.18), transparent 55%),
+                  radial-gradient(900px 600px at 70% 30%, rgba(167,139,250,.16), transparent 60%),
+                  linear-gradient(180deg, #070a15, #0b1020 45%, #070a15);
+      color:var(--ink);
+    }
+    .wrap{width:min(1040px, 92vw); padding: 28px;}
+    .top{
+      display:flex; gap:16px; align-items:flex-start; justify-content:space-between;
+      margin-bottom:16px;
+    }
+    h1{font-size: clamp(22px, 2.6vw, 34px); margin:0}
+    .hint{
+      font-size: 14px; color: var(--muted); line-height:1.5;
+      text-align:right;
+    }
+    .card{
+      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+      border: 1px solid rgba(255,255,255,.10);
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+    .stage{
+      padding: 22px 22px 16px;
+      display:flex; gap:14px; align-items:center; flex-wrap:wrap;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+    }
+
+    /* flow nodes */
+    .node{
+      display:flex; align-items:center; gap:10px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      background: rgba(18,26,51,.75);
+      border: 1px solid rgba(255,255,255,.10);
+      opacity:.25;
+      transform: translateY(4px) scale(.985);
+      transition: .35s ease;
+      user-select:none;
+      cursor: default;
+      min-width: 160px;
+    }
+    .node.active{
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      border-color: rgba(110,231,255,.30);
+      box-shadow: 0 10px 25px rgba(110,231,255,.08);
+    }
+    .badge{
+      width: 30px; height: 30px; display:grid; place-items:center;
+      border-radius: 10px;
+      background: rgba(110,231,255,.12);
+      border: 1px solid rgba(110,231,255,.22);
+      color: var(--accent);
+      font-weight: 700;
+      flex: 0 0 auto;
+    }
+    .node .label{font-weight:700}
+    .node .sub{font-size:13px; color:var(--muted); margin-top:2px}
+    .arrow{
+      opacity:.2;
+      transition: .35s ease;
+      color: rgba(234,240,255,.8);
+      font-weight: 800;
+      letter-spacing: .12em;
+    }
+    .arrow.active{opacity: 1; color: var(--accent);}
+
+    .content{
+      padding: 18px 22px 22px;
+      display:grid;
+      grid-template-columns: 1.05fr .95fr;
+      gap: 18px;
+    }
+    @media (max-width: 880px){
+      .content{grid-template-columns: 1fr}
+      .hint{text-align:left}
+      .top{flex-direction:column}
+    }
+
+    .panel{
+      background: rgba(18,26,51,.55);
+      border: 1px solid rgba(255,255,255,.09);
+      border-radius: 16px;
+      padding: 16px 16px 14px;
+    }
+    .panel h2{
+      margin:0 0 10px;
+      font-size: 16px;
+      color: rgba(234,240,255,.92);
+      display:flex; align-items:center; gap:8px;
+    }
+    .panel p, .panel li{
+      color: var(--muted);
+      line-height:1.7;
+      margin: 6px 0;
+      font-size: 14.5px;
+    }
+    .panel ul{margin:10px 0 0 18px; padding:0}
+    .callout{
+      margin-top:10px;
+      padding: 10px 12px;
+      border-radius: 14px;
+      background: rgba(167,139,250,.10);
+      border: 1px solid rgba(167,139,250,.22);
+      color: rgba(234,240,255,.9);
+      font-size: 14px;
+    }
+
+    .cta{
+      display:flex; gap:10px; flex-wrap:wrap;
+      padding: 14px 22px 22px;
+      border-top: 1px solid rgba(255,255,255,.08);
+      align-items:center;
+      justify-content:space-between;
+    }
+    .btns{display:flex; gap:10px; flex-wrap:wrap}
+    button{
+      appearance:none; border:1px solid rgba(255,255,255,.14);
+      background: rgba(18,26,51,.55);
+      color: var(--ink);
+      padding: 10px 12px;
+      border-radius: 12px;
+      cursor:pointer;
+      transition: .2s ease;
+      font-weight: 650;
+      font-size: 14px;
+    }
+    button:hover{transform: translateY(-1px); border-color: rgba(110,231,255,.35)}
+    button:active{transform: translateY(0px); opacity:.9}
+    .progress{
+      color: var(--muted);
+      font-size: 13px;
+      display:flex; align-items:center; gap:10px;
+    }
+    .dot{
+      width:8px; height:8px; border-radius: 99px;
+      background: rgba(255,255,255,.18);
+    }
+    .dot.on{background: var(--accent)}
+    .kbd{
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-size: 12px;
+      padding: 2px 7px;
+      border-radius: 8px;
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(0,0,0,.25);
+      color: rgba(234,240,255,.9);
+    }
+    .algoTag{
+      display:inline-flex; align-items:center; gap:8px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(52,211,153,.10);
+      border: 1px solid rgba(52,211,153,.22);
+      color: rgba(234,240,255,.94);
+      font-size: 13px;
+      font-weight: 750;
+      margin-top: 10px;
+      opacity:.25; transform: translateY(4px);
+      transition: .35s ease;
+    }
+    .algoTag.on{opacity:1; transform: translateY(0)}
+    .algoTag b{color: var(--good)}
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <div class="top">
+      <h1>Day1の復習：<span style="color:var(--accent)">encode</span> → 計算 → <span style="color:var(--accent2)">decode</span></h1>
+      <div class="hint">
+        クリック / <span class="kbd">→</span> / <span class="kbd">Space</span> で進む<br/>
+        <span class="kbd">←</span> で戻る・<span class="kbd">R</span> でリセット
+      </div>
+    </div>
+
+    <div class="card">
+      <!-- FLOW -->
+      <div class="stage" id="stage">
+        <div class="node" data-step="0">
+          <div class="badge">0</div>
+          <div>
+            <div class="label">世の中の問題</div>
+            <div class="sub">現実の困りごと</div>
+          </div>
+        </div>
+
+        <div class="arrow" data-arrow="0">→</div>
+
+        <div class="node" data-step="1">
+          <div class="badge">1</div>
+          <div>
+            <div class="label">encode</div>
+            <div class="sub">問題をデータ化</div>
+          </div>
+        </div>
+
+        <div class="arrow" data-arrow="1">→</div>
+
+        <div class="node" data-step="2">
+          <div class="badge">2</div>
+          <div>
+            <div class="label">計算</div>
+            <div class="sub">解を探す処理</div>
+          </div>
+        </div>
+
+        <div class="arrow" data-arrow="2">→</div>
+
+        <div class="node" data-step="3">
+          <div class="badge">3</div>
+          <div>
+            <div class="label">decode</div>
+            <div class="sub">意味のある答えへ</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- EXPLANATION -->
+      <div class="content">
+        <div class="panel">
+          <h2>いま表示しているポイント</h2>
+          <div id="explain"></div>
+
+          <div class="algoTag" id="algoTag">
+            これは <b>アルゴリズム</b>（入力→出力のレシピ）
+          </div>
+        </div>
+
+        <div class="panel">
+          <h2>量子コンピューターを使うと…</h2>
+          <div id="quantum"></div>
+        </div>
+      </div>
+
+      <!-- CONTROLS -->
+      <div class="cta">
+        <div class="btns">
+          <button id="prev">← 戻る</button>
+          <button id="next">進む →</button>
+          <button id="reset">R リセット</button>
+        </div>
+        <div class="progress" aria-live="polite">
+          <span id="ptext">step 0 / 4</span>
+          <span id="dots" style="display:flex; gap:6px; align-items:center;"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 0..4 の5段階（4で「量子アルゴリズム」までまとめて出す）
+    const MAX = 4;
+    let step = 0;
+
+    const explainEl = document.getElementById("explain");
+    const quantumEl = document.getElementById("quantum");
+    const algoTag = document.getElementById("algoTag");
+    const ptext = document.getElementById("ptext");
+    const dots = document.getElementById("dots");
+
+    const nodes = [...document.querySelectorAll(".node")];
+    const arrows = [...document.querySelectorAll(".arrow")];
+
+    const content = {
+      explain: [
+        `<p><b>世の中の問題</b>は、そのままだと計算できません。</p>
+         <p>まずは「計算できる形」に変換する必要があります。</p>`,
+        `<p><b>encode</b>：現実の問題をデータ表現へ。</p>
+         <ul>
+           <li>制約・目的・入力を「形式化」する</li>
+           <li>コンピューターが扱える変数に落とす</li>
+         </ul>`,
+        `<p><b>計算</b>：エンコードされた表現に対して解を探す処理。</p>
+         <ul>
+           <li>探索 / 最適化 / 推論 など</li>
+           <li>ここを量子で置き換えることがある</li>
+         </ul>`,
+        `<p><b>decode</b>：計算結果を、人間が使える答えへ。</p>
+         <ul>
+           <li>ビット列 / 状態 → 意味のある割当・スケジュールへ</li>
+           <li>必要なら検証や後処理も含む</li>
+         </ul>`,
+        `<p><b>encode → 計算 → decode</b> の一連の手順を <b>アルゴリズム</b> と呼びます。</p>
+         <p class="callout">量子コンピューターを使う場合は <b>量子アルゴリズム</b>（計算部分が量子）</p>`
+      ],
+      quantum: [
+        `<p>まだ量子は出てきません。</p>
+         <p>まずは「問題→計算の流れ」を押さえる。</p>`,
+        `<p>量子で解くなら、<b>量子ビット</b>に encode します。</p>
+         <ul>
+           <li>古典ビットではなく、量子状態で表す</li>
+           <li>表し方（エンコード）が性能を左右</li>
+         </ul>`,
+        `<p>計算は <b>量子回路</b> で行います。</p>
+         <ul>
+           <li>ゲート操作の並び＝回路</li>
+           <li>回路設計がアルゴリズムの核</li>
+         </ul>`,
+        `<p>量子の出力は直接読めないので、<b>測定</b>で結果を得ます。</p>
+         <ul>
+           <li>測定結果（ビット列や頻度）を取り出す</li>
+           <li>それを decode して答えにする</li>
+         </ul>`,
+        `<p class="callout"><b>量子アルゴリズム</b>：<br/>
+         「量子ビットに encode」→「量子回路で計算」→「測定結果を decode」</p>`
+      ]
+    };
+
+    function renderDots(){
+      dots.innerHTML = "";
+      for(let i=0;i<=MAX;i++){
+        const d = document.createElement("span");
+        d.className = "dot" + (i<=step ? " on" : "");
+        dots.appendChild(d);
+      }
+    }
+
+    function render(){
+      // flow: step 0..3 まで node を順に点灯
+      nodes.forEach(n=>{
+        const s = Number(n.dataset.step);
+        n.classList.toggle("active", s<=Math.min(step,3));
+      });
+      arrows.forEach(a=>{
+        const s = Number(a.dataset.arrow);
+        a.classList.toggle("active", s<Math.min(step,4));
+      });
+
+      explainEl.innerHTML = content.explain[step];
+      quantumEl.innerHTML = content.quantum[step];
+
+      // アルゴリズムのタグは step>=4 で強調
+      algoTag.classList.toggle("on", step>=4);
+
+      ptext.textContent = `step ${step} / ${MAX}`;
+      renderDots();
+    }
+
+    function next(){ step = Math.min(MAX, step+1); render(); }
+    function prev(){ step = Math.max(0, step-1); render(); }
+    function reset(){ step = 0; render(); }
+
+    // Buttons
+    document.getElementById("next").addEventListener("click", next);
+    document.getElementById("prev").addEventListener("click", prev);
+    document.getElementById("reset").addEventListener("click", reset);
+
+    // Keyboard controls
+    window.addEventListener("keydown", (e)=>{
+      if(["ArrowRight"," ","Enter"].includes(e.key)) { e.preventDefault(); next(); }
+      if(["ArrowLeft","Backspace"].includes(e.key)) { e.preventDefault(); prev(); }
+      if(e.key.toLowerCase()==="r") { e.preventDefault(); reset(); }
+    });
+
+    // Click anywhere on card to advance (except buttons)
+    document.querySelector(".card").addEventListener("click", (e)=>{
+      const tag = e.target.tagName.toLowerCase();
+      if(tag === "button") return;
+      next();
+    });
+
+    render();
+  </script>
+</body>
+</html>

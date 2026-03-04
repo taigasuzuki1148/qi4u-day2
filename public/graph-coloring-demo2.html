@@ -1,0 +1,496 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Graph Coloring Interactive Demo (Compact + Precolored)</title>
+  <style>
+    :root { --bg:#0b0f19; --panel:#121a2b; --text:#e9eefc; --muted:#a9b3d3; --accent:#7aa2ff; --bad:#ff6b6b; }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; }
+    body{
+      font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", "Hiragino Sans", "Yu Gothic", sans-serif;
+      background: linear-gradient(180deg, #060912, var(--bg));
+      color: var(--text);
+      height: 100%;
+      overflow: hidden;
+      display: grid;
+      grid-template-columns: minmax(280px, 360px) 1fr;
+      gap: 12px;
+      padding: 12px;
+    }
+
+    .card{
+      background: rgba(18,26,43,.92);
+      border: 1px solid rgba(122,162,255,.18);
+      border-radius: 14px;
+      padding: 10px 10px 8px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.35);
+      height: 100%;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+
+    .panel-scroll{
+      overflow: auto;
+      min-height: 0;
+      padding-right: 4px;
+    }
+
+    h1{ font-size: 15px; margin:0 0 6px; }
+    h2{ font-size: 12px; margin:10px 0 6px; color: var(--muted); font-weight:600; }
+    p, li { color: var(--muted); line-height: 1.45; margin: 6px 0; }
+    .row{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+    label{ font-size:11px; color:var(--muted); }
+    select, button, input[type="number"]{
+      background: #0f1728;
+      color: var(--text);
+      border: 1px solid rgba(122,162,255,.25);
+      border-radius: 10px;
+      padding: 6px 8px;
+      outline:none;
+      font-size: 12px;
+    }
+    button{ cursor:pointer; transition: transform .05s ease, border-color .2s ease; }
+    button:active{ transform: translateY(1px); }
+    button:hover{ border-color: rgba(122,162,255,.5); }
+
+    .toggle{
+      display:flex; align-items:center; gap:8px;
+      padding: 8px 10px;
+      border-radius: 12px;
+      border:1px solid rgba(255,255,255,.08);
+      background: rgba(0,0,0,.18);
+      margin-top: 8px;
+    }
+    .toggle input{ width: 14px; height: 14px; }
+    .toggle .t{
+      font-size: 12px; color: var(--muted); line-height:1.25;
+    }
+
+    .status{
+      margin-top:8px;
+      padding:8px 10px;
+      border-radius: 12px;
+      border:1px solid rgba(255,255,255,.08);
+      background: rgba(0,0,0,.18);
+      font-size: 12px;
+      display:flex; align-items:center; justify-content:space-between; gap:10px;
+    }
+    .badge{
+      font-size: 11px; padding: 3px 7px; border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.06);
+      color: var(--muted);
+      white-space: nowrap;
+    }
+    .badge.ok{ border-color: rgba(122,255,184,.35); color: #bdf9da; background: rgba(122,255,184,.08); }
+    .badge.ng{ border-color: rgba(255,107,107,.35); color: #ffd0d0; background: rgba(255,107,107,.08); }
+
+    .hint{ font-size:11px; color: var(--muted); margin-top: 6px; }
+    .small { font-size: 11px; color: var(--muted); }
+    .divider { height:1px; background: rgba(255,255,255,.08); margin: 8px 0; }
+
+    .list {
+      flex: 1;
+      min-height: 0;
+      overflow: auto;
+      padding-right: 4px;
+    }
+    .edgeitem { display:flex; justify-content:space-between; gap:8px; padding:6px 8px; border-radius:10px; font-size: 12px; }
+    .edgeitem.bad { background: rgba(255,107,107,.08); }
+    .edgeitem.good { background: rgba(122,255,184,.06); }
+    .edgeitem.info { background: rgba(122,162,255,.08); }
+    .kbd { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+           font-size: 10px; padding: 2px 6px; border: 1px solid rgba(255,255,255,.12); border-radius: 8px; color: var(--text); }
+
+    canvas{
+      width:100%;
+      height:100%;
+      display:block;
+      background: radial-gradient(1200px 800px at 60% 40%, rgba(122,162,255,.12), transparent 60%),
+                  radial-gradient(900px 600px at 30% 70%, rgba(255,107,107,.08), transparent 60%),
+                  #070b14;
+      border-radius: 14px;
+      border: 1px solid rgba(122,162,255,.18);
+      box-shadow: 0 10px 30px rgba(0,0,0,.35);
+      min-height: 0;
+    }
+
+    @media (max-height: 420px) {
+      body { grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="panel-scroll">
+      <h1>Graph Coloring (k-coloring) Demo</h1>
+
+      <p class="small">
+        Graph <b>G=(V,E)</b>:<br>
+        • <b>V</b> (vertices) = the items to assign colors to<br>
+        • <b>E</b> (edges) = constraints saying “these two must have different colors”
+      </p>
+
+      <div class="divider"></div>
+
+      <h2>Controls</h2>
+      <div class="row">
+        <label>k</label>
+        <input id="kInput" type="number" min="2" max="8" value="3" style="width:64px" />
+        <button id="applyKBtn">Apply</button>
+        <button id="randomBtn">Random</button>
+        <button id="resetBtn">Reset</button>
+      </div>
+
+      <div class="toggle">
+        <input id="lockMode" type="checkbox" />
+        <div class="t">
+          <b>Lock mode</b>: When ON, clicking a vertex toggles “lock/unlock”.<br/>
+          When OFF, clicking changes the color (locked vertices won’t change).
+        </div>
+      </div>
+
+      <div class="status" id="statusBox">
+        <div>
+          <div id="statusText">—</div>
+          <div class="small" id="statusSub">—</div>
+        </div>
+        <div class="badge" id="statusBadge">—</div>
+      </div>
+
+      <h2>Locked (precolored)</h2>
+      <div class="list" id="lockList"></div>
+    </div>
+
+    <div class="list" id="conflictList"></div>
+  </div>
+
+  <canvas id="cv"></canvas>
+
+  <script>
+    const canvas = document.getElementById('cv');
+    const ctx = canvas.getContext('2d');
+
+    function resize() {
+      const dpr = Math.max(1, window.devicePixelRatio || 1);
+      const cssW = canvas.clientWidth, cssH = canvas.clientHeight;
+      if (!cssW || !cssH) return;
+      canvas.width = Math.floor(cssW * dpr);
+      canvas.height = Math.floor(cssH * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      draw();
+    }
+    window.addEventListener('resize', resize);
+
+    const kInput = document.getElementById('kInput');
+    const applyKBtn = document.getElementById('applyKBtn');
+    const randomBtn = document.getElementById('randomBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const lockMode = document.getElementById('lockMode');
+
+    const statusText = document.getElementById('statusText');
+    const statusSub = document.getElementById('statusSub');
+    const statusBadge = document.getElementById('statusBadge');
+    const conflictList = document.getElementById('conflictList');
+    const lockList = document.getElementById('lockList');
+
+    const defaultGraph = {
+      V: ["A","B","C","D","E"],
+      E: [["A","B"],["C","A"],["C","D"],["D","E"],["B","E"]]
+    };
+
+    function colorToFill(idx, k) {
+      const hue = (idx * (360 / Math.max(2, k))) % 360;
+      return `hsl(${hue}, 80%, 58%)`;
+    }
+    function colorToStroke(idx, k) {
+      const hue = (idx * (360 / Math.max(2, k))) % 360;
+      return `hsl(${hue}, 85%, 42%)`;
+    }
+
+    let k = parseInt(kInput.value, 10);
+    let nodes = [];
+    let edges = [];
+
+    // ✅ precolored: node.id -> colorIndex
+    let locked = new Map(); // e.g. "A" -> 0
+
+    function initGraph(graph = defaultGraph) {
+      const W = canvas.clientWidth || 900;
+      const H = canvas.clientHeight || 500;
+      const cx = W * 0.5;
+      const cy = H * 0.5;
+      const r = Math.min(W, H) * 0.32;
+
+      nodes = graph.V.map((label, i) => {
+        const ang = (i / graph.V.length) * Math.PI * 2 - Math.PI/2;
+        const color = locked.has(label) ? (locked.get(label) % k) : (i % k);
+        return { id: label, label, x: cx + r*Math.cos(ang), y: cy + r*Math.sin(ang), color };
+      });
+
+      // After changing k, ensure locked colors are within range
+      for (const [id, c] of locked.entries()) locked.set(id, ((c % k) + k) % k);
+
+      edges = graph.E.map(([a,b]) => ({ u: a, v: b }));
+      updateStatus();
+      draw();
+    }
+
+    function nodeById(id) { return nodes.find(n => n.id === id); }
+
+    function conflicts() {
+      const bad = [];
+      for (const e of edges) {
+        const u = nodeById(e.u), v = nodeById(e.v);
+        if (u && v && u.color === v.color) bad.push({u,v});
+      }
+      return bad;
+    }
+
+    function updateLockList(){
+      lockList.innerHTML = "";
+      if (locked.size === 0){
+        const div = document.createElement("div");
+        div.className = "edgeitem info";
+        div.textContent = "No locked vertices (click to lock)";
+        lockList.appendChild(div);
+        return;
+      }
+      // Sort by id for display
+      [...locked.entries()].sort((a,b)=>a[0].localeCompare(b[0])).forEach(([id,c])=>{
+        const div = document.createElement("div");
+        div.className = "edgeitem info";
+        div.innerHTML = `<span>${id}</span><span class="kbd">color=${c} 🔒</span>`;
+        lockList.appendChild(div);
+      });
+    }
+
+    function updateStatus() {
+      const bad = conflicts();
+      const m = edges.length;
+
+      // update lock display
+      updateLockList();
+
+      if (bad.length === 0) {
+        statusText.textContent = "✅ VALID (constraints satisfied)";
+        statusSub.textContent = `All edges satisfy color(u) ≠ color(v) / |E|=${m}`;
+        statusBadge.textContent = "VALID";
+        statusBadge.className = "badge ok";
+      } else {
+        statusText.textContent = "❌ INVALID (constraint violation)";
+        statusSub.textContent = `Violations: ${bad.length} / |E|=${m} (red edges)`;
+        statusBadge.textContent = "INVALID";
+        statusBadge.className = "badge ng";
+      }
+
+      conflictList.innerHTML = "";
+      if (bad.length === 0) {
+        const div = document.createElement("div");
+        div.className = "edgeitem good";
+        div.textContent = "No conflicts";
+        conflictList.appendChild(div);
+      } else {
+        for (const {u,v} of bad) {
+          const div = document.createElement("div");
+          div.className = "edgeitem bad";
+          div.innerHTML = `<span>(${u.id}, ${v.id})</span><span class="kbd">color=${u.color}</span>`;
+          conflictList.appendChild(div);
+        }
+      }
+    }
+
+    function draw() {
+      const w = canvas.clientWidth, h = canvas.clientHeight;
+      if (!w || !h) return;
+
+      ctx.clearRect(0, 0, w, h);
+
+      // grid
+      ctx.save();
+      ctx.globalAlpha = 0.07;
+      ctx.strokeStyle = "#ffffff";
+      for (let x = 0; x < w; x += 44) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,h); ctx.stroke(); }
+      for (let y = 0; y < h; y += 44) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(w,y); ctx.stroke(); }
+      ctx.restore();
+
+      // edges
+      const badPairs = new Set(conflicts().flatMap(({u,v}) => [`${u.id}-${v.id}`, `${v.id}-${u.id}`]));
+      for (const e of edges) {
+        const u = nodeById(e.u), v = nodeById(e.v);
+        if (!u || !v) continue;
+        const isBad = badPairs.has(`${u.id}-${v.id}`);
+        ctx.lineWidth = isBad ? 4 : 2;
+        ctx.strokeStyle = isBad ? "rgba(255,107,107,0.9)" : "rgba(233,238,252,0.35)";
+        ctx.beginPath(); ctx.moveTo(u.x,u.y); ctx.lineTo(v.x,v.y); ctx.stroke();
+      }
+
+      // nodes
+      const R = 20;
+      for (const n of nodes) {
+        const isLocked = locked.has(n.id);
+
+        // shadow
+        ctx.save();
+        ctx.beginPath();
+        ctx.fillStyle = "rgba(0,0,0,0.33)";
+        ctx.arc(n.x+3, n.y+3, R, 0, Math.PI*2);
+        ctx.fill();
+        ctx.restore();
+
+        // circle
+        ctx.beginPath();
+        ctx.fillStyle = colorToFill(n.color, k);
+        ctx.strokeStyle = colorToStroke(n.color, k);
+        ctx.lineWidth = 3;
+        ctx.arc(n.x, n.y, R, 0, Math.PI*2);
+        ctx.fill();
+        ctx.stroke();
+
+        // locked highlight
+        if (isLocked){
+          ctx.beginPath();
+          ctx.strokeStyle = "rgba(233,238,252,0.9)";
+          ctx.lineWidth = 2;
+          ctx.setLineDash([4,3]);
+          ctx.arc(n.x, n.y, R+5, 0, Math.PI*2);
+          ctx.stroke();
+          ctx.setLineDash([]);
+        }
+
+        // label
+        ctx.fillStyle = "#0b0f19";
+        ctx.font = "700 13px ui-sans-serif, system-ui, sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(n.label, n.x, n.y - 1);
+
+        // color index + lock icon
+        ctx.fillStyle = "rgba(233,238,252,0.9)";
+        ctx.font = "600 10px ui-monospace, monospace";
+        const suffix = isLocked ? " 🔒" : "";
+        ctx.fillText(String(n.color) + suffix, n.x, n.y + R + 10);
+      }
+    }
+
+    // interaction
+    let dragging = null;
+    let dragOffset = {x:0, y:0};
+    let moved = false;
+
+    function hitNode(px, py) {
+      const R = 20;
+      for (let i = nodes.length - 1; i >= 0; i--) {
+        const n = nodes[i];
+        const dx = px - n.x, dy = py - n.y;
+        if (dx*dx + dy*dy <= R*R) return n;
+      }
+      return null;
+    }
+
+    function pointerPos(evt) {
+      const rect = canvas.getBoundingClientRect();
+      return { x: evt.clientX - rect.left, y: evt.clientY - rect.top };
+    }
+
+    canvas.addEventListener('pointerdown', (evt) => {
+      const p = pointerPos(evt);
+      const n = hitNode(p.x, p.y);
+      if (!n) return;
+      dragging = n;
+      moved = false;
+      dragOffset.x = p.x - n.x;
+      dragOffset.y = p.y - n.y;
+      canvas.setPointerCapture(evt.pointerId);
+    });
+
+    canvas.addEventListener('pointermove', (evt) => {
+      if (!dragging) return;
+      const p = pointerPos(evt);
+      const nx = p.x - dragOffset.x;
+      const ny = p.y - dragOffset.y;
+      const dx = nx - dragging.x, dy = ny - dragging.y;
+      if (dx*dx + dy*dy > 1) moved = true;
+      dragging.x = nx; dragging.y = ny;
+      draw();
+    });
+
+    canvas.addEventListener('pointerup', () => {
+      if (!dragging) return;
+
+      // click (not moved)
+      if (!moved) {
+        const n = dragging;
+        const isLocked = locked.has(n.id);
+
+        if (lockMode.checked) {
+          // Lock mode: lock/unlock
+          if (isLocked) {
+            locked.delete(n.id);
+          } else {
+            locked.set(n.id, n.color % k);
+          }
+          // If locked, keep current color
+          if (locked.has(n.id)) n.color = locked.get(n.id);
+          updateStatus();
+          draw();
+        } else {
+          // Normal mode: change color only if not locked
+          if (!isLocked) {
+            n.color = (n.color + 1) % k;
+            updateStatus();
+          }
+          draw();
+        }
+      }
+
+      dragging = null;
+    });
+
+    applyKBtn.addEventListener('click', () => {
+      const newK = Math.max(2, Math.min(8, parseInt(kInput.value, 10) || 3));
+      k = newK;
+
+      // adjust locked colors to be within range
+      for (const [id,c] of locked.entries()) locked.set(id, ((c % k) + k) % k);
+
+      // ensure locked nodes use locked colors
+      for (const n of nodes) {
+        if (locked.has(n.id)) n.color = locked.get(n.id);
+        else n.color = n.color % k;
+      }
+      updateStatus();
+      draw();
+    });
+
+    randomBtn.addEventListener('click', () => {
+      for (const n of nodes) {
+        if (locked.has(n.id)) {
+          n.color = locked.get(n.id); // keep fixed
+        } else {
+          n.color = Math.floor(Math.random() * k);
+        }
+      }
+      updateStatus();
+      draw();
+    });
+
+    resetBtn.addEventListener('click', () => {
+      k = parseInt(kInput.value, 10) || 3;
+      locked = new Map(); // clear locks
+      initGraph(defaultGraph);
+      updateStatus();
+      draw();
+    });
+
+    // boot
+    initGraph(defaultGraph);
+    updateStatus();
+    requestAnimationFrame(() => { resize(); });
+  </script>
+</body>
+</html>

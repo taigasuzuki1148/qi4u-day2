@@ -1,0 +1,470 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Reflection of Day1 (Encode → Compute → Decode)</title>
+  <style>
+    :root{
+      --bg0:#070a15; --bg1:#0b1020;
+      --ink:#eaf0ff; --muted:#a7b3d6;
+      --card: rgba(255,255,255,.06);
+      --card2: rgba(255,255,255,.03);
+      --border: rgba(255,255,255,.10);
+      --shadow: 0 18px 50px rgba(0,0,0,.35);
+      --accent:#6ee7ff; --accent2:#a78bfa;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+      color:var(--ink);
+      background:
+        radial-gradient(1200px 700px at 20% 10%, rgba(110,231,255,.18), transparent 55%),
+        radial-gradient(900px 600px at 70% 30%, rgba(167,139,250,.16), transparent 60%),
+        linear-gradient(180deg, var(--bg0), var(--bg1) 45%, var(--bg0));
+    }
+
+    /* full width, no rounded corners */
+    .wrap{width:100vw; padding:0;}
+    .card{
+      width:100%;
+      background: linear-gradient(180deg, var(--card), var(--card2));
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      border-left: 0; border-right: 0;
+      border-radius: 0;
+      box-shadow: var(--shadow);
+    }
+
+    header{
+      padding: 20px 18px 14px;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+      display:flex; gap:14px; align-items:baseline; justify-content:space-between;
+      flex-wrap:wrap;
+    }
+    h1{margin:0; font-size: clamp(22px, 2.4vw, 34px);}
+    .subtitle{color:var(--muted); font-size:14px;}
+
+    .nav{
+      display:flex; gap:10px; flex-wrap:wrap;
+      padding: 14px 18px;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+    }
+    .tab{
+      cursor:pointer; user-select:none;
+      padding: 10px 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(18,26,51,.55);
+      color: var(--ink);
+      font-weight: 800;
+      font-size: 13px;
+      display:flex; gap:10px; align-items:center;
+      transition: .18s ease;
+    }
+    .tab:hover{transform: translateY(-1px); border-color: rgba(110,231,255,.35)}
+    .tab.active{
+      border-color: rgba(110,231,255,.45);
+      background: rgba(110,231,255,.10);
+      box-shadow: 0 10px 25px rgba(110,231,255,.08);
+    }
+    .badge{
+      width:28px; height:28px; display:grid; place-items:center;
+      border-radius:10px;
+      background: rgba(110,231,255,.12);
+      border: 1px solid rgba(110,231,255,.22);
+      color: var(--accent);
+      font-weight: 900;
+      flex:0 0 auto;
+    }
+
+    .content{
+      padding: 16px 18px 20px;
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      align-items:start;
+    }
+    @media (max-width: 980px){
+      .content{grid-template-columns:1fr}
+    }
+
+    .panel{
+      background: rgba(18,26,51,.55);
+      border: 1px solid rgba(255,255,255,.09);
+      border-radius: 16px;
+      padding: 14px 14px 12px;
+    }
+    .panel h2{
+      margin:0 0 10px;
+      font-size: 16px;
+      color: rgba(234,240,255,.92);
+      display:flex; align-items:center; gap:10px;
+    }
+    .panel p, .panel li{
+      color: var(--muted);
+      line-height: 1.75;
+      margin: 6px 0;
+      font-size: 14.5px;
+    }
+    .panel ul{margin:10px 0 0 18px; padding:0}
+
+    .callout{
+      margin-top:10px;
+      padding: 10px 12px;
+      border-radius: 14px;
+      background: rgba(167,139,250,.10);
+      border: 1px solid rgba(167,139,250,.22);
+      color: rgba(234,240,255,.92);
+      font-size: 14px;
+      line-height: 1.65;
+    }
+
+    .chips{display:flex; flex-wrap:wrap; gap:8px; margin-top:10px}
+    .chip{
+      padding: 6px 10px;
+      border-radius: 999px;
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(0,0,0,.18);
+      color: rgba(234,240,255,.92);
+      font-weight: 900;
+      font-size: 12.5px;
+    }
+    code{
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-size: 13px;
+      padding: 2px 6px;
+      border-radius: 8px;
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(0,0,0,.25);
+      color: rgba(234,240,255,.92);
+    }
+
+    .svgBox{
+      width:100%;
+      border-radius: 16px;
+      background: rgba(0,0,0,.18);
+      border: 1px solid rgba(255,255,255,.10);
+      padding: 10px;
+      overflow:hidden;
+    }
+    .svgBox svg{width:100%; height:auto; display:block;}
+    .small{font-size:12.5px; color: rgba(167,179,214,.95);}
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <div class="card">
+      <header>
+        <div>
+          <h1>Reflection of Day1</h1>
+          <div class="subtitle">Encode → Compute → Measure → Decode</div>
+        </div>
+        <div class="subtitle">Quick visual recap (Bloch / gates / circuit / counts)</div>
+      </header>
+
+      <div class="nav" id="nav">
+        <div class="tab active" data-page="overview"><span class="badge">0</span>Overview</div>
+        <div class="tab" data-page="encode"><span class="badge">1</span>Encode</div>
+        <div class="tab" data-page="compute"><span class="badge">2</span>Compute</div>
+        <div class="tab" data-page="decode"><span class="badge">3</span>Decode</div>
+      </div>
+
+      <div class="content">
+        <div class="panel" id="left"></div>
+        <div class="panel" id="right"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const pages = {
+      overview: {
+        leftTitle: "Big picture",
+        leftHtml: `
+          <ul>
+            <li><b>Encode</b>: represent <code>0/1</code> using <b>qubits</b>.</li>
+            <li><b>Compute</b>: apply <b>quantum gates</b> (a <b>quantum circuit</b>), then <b>measure</b>.</li>
+            <li><b>Decode</b>: combine measured bits like <code>00001</code> into a meaningful answer.</li>
+          </ul>
+          <div class="callout">
+            A “quantum algorithm” includes the whole pipeline: <b>encode → circuit → measurement → decode</b>.
+          </div>
+        `,
+        rightTitle: "Pipeline sketch",
+        rightHtml: `
+          <div class="svgBox">
+            <svg viewBox="0 0 720 260" aria-label="pipeline">
+              <defs>
+                <linearGradient id="g1" x1="0" x2="1">
+                  <stop offset="0" stop-color="rgba(110,231,255,.22)"/>
+                  <stop offset="1" stop-color="rgba(167,139,250,.18)"/>
+                </linearGradient>
+              </defs>
+
+              <rect x="20" y="30" width="160" height="72" rx="16" fill="rgba(18,26,51,.55)" stroke="rgba(255,255,255,.14)"/>
+              <text x="100" y="62" text-anchor="middle" fill="rgba(234,240,255,.95)" font-size="14" font-weight="900">Encode</text>
+              <text x="100" y="84" text-anchor="middle" fill="rgba(167,179,214,.95)" font-size="12" font-weight="800">bits → qubits</text>
+
+              <rect x="220" y="30" width="200" height="72" rx="16" fill="rgba(18,26,51,.55)" stroke="rgba(255,255,255,.14)"/>
+              <text x="320" y="62" text-anchor="middle" fill="rgba(234,240,255,.95)" font-size="14" font-weight="900">Compute</text>
+              <text x="320" y="84" text-anchor="middle" fill="rgba(167,179,214,.95)" font-size="12" font-weight="800">gates / circuit</text>
+
+              <rect x="460" y="30" width="120" height="72" rx="16" fill="rgba(18,26,51,.55)" stroke="rgba(255,255,255,.14)"/>
+              <text x="520" y="62" text-anchor="middle" fill="rgba(234,240,255,.95)" font-size="14" font-weight="900">Measure</text>
+              <text x="520" y="84" text-anchor="middle" fill="rgba(167,179,214,.95)" font-size="12" font-weight="800">shots</text>
+
+              <rect x="600" y="30" width="100" height="72" rx="16" fill="rgba(18,26,51,.55)" stroke="rgba(255,255,255,.14)"/>
+              <text x="650" y="62" text-anchor="middle" fill="rgba(234,240,255,.95)" font-size="14" font-weight="900">Decode</text>
+              <text x="650" y="84" text-anchor="middle" fill="rgba(167,179,214,.95)" font-size="12" font-weight="800">bits → answer</text>
+
+              <!-- arrows -->
+              <line x1="180" y1="66" x2="220" y2="66" stroke="rgba(110,231,255,.65)" stroke-width="4" stroke-linecap="round"/>
+              <polygon points="220,66 208,58 208,74" fill="rgba(110,231,255,.85)"/>
+
+              <line x1="420" y1="66" x2="460" y2="66" stroke="rgba(110,231,255,.65)" stroke-width="4" stroke-linecap="round"/>
+              <polygon points="460,66 448,58 448,74" fill="rgba(110,231,255,.85)"/>
+
+              <line x1="580" y1="66" x2="600" y2="66" stroke="rgba(110,231,255,.65)" stroke-width="4" stroke-linecap="round"/>
+              <polygon points="600,66 588,58 588,74" fill="rgba(110,231,255,.85)"/>
+
+              <!-- bottom hint -->
+              <rect x="20" y="135" width="680" height="100" rx="18" fill="url(#g1)" stroke="rgba(255,255,255,.10)"/>
+              <text x="40" y="168" fill="rgba(234,240,255,.95)" font-size="14" font-weight="900">
+                Key idea:
+              </text>
+              <text x="40" y="196" fill="rgba(234,240,255,.9)" font-size="13" font-weight="800">
+                “Compute” is quantum, but you must design encode and decode too.
+              </text>
+              <text x="40" y="222" fill="rgba(167,179,214,.95)" font-size="12" font-weight="800">
+                Measurement is the only way to read out the quantum state.
+              </text>
+            </svg>
+          </div>
+          <div class="small" style="margin-top:8px;">
+            Use the tabs above to review each part with visuals.
+          </div>
+        `
+      },
+
+      encode: {
+        leftTitle: "Encode → represent 0/1 with qubits",
+        leftHtml: `
+          <p>
+            Classical information is a bit <code>0</code> or <code>1</code>. In a quantum computer, we represent this using qubit basis states:
+            <code>|0⟩</code> and <code>|1⟩</code>.
+          </p>
+          <p>
+            We can also create <b>superposition</b>:
+            <code>|ψ⟩ = α|0⟩ + β|1⟩</code>, where probabilities are <code>|α|²</code> and <code>|β|²</code>.
+          </p>
+          <div class="callout">
+            A gate like <b>H</b> maps <code>|0⟩ → (|0⟩ + |1⟩)/√2</code> (equal superposition).
+          </div>
+
+          <div class="chips">
+            <span class="chip">|0⟩</span>
+            <span class="chip">|1⟩</span>
+            <span class="chip">α|0⟩ + β|1⟩</span>
+            <span class="chip">H</span>
+            <span class="chip">X</span>
+          </div>
+        `,
+        rightTitle: "Bloch sphere (circle notation) + basic gates",
+        rightHtml: `
+          <div class="svgBox">
+            <svg viewBox="0 0 760 300" aria-label="bloch and gates">
+              <!-- Bloch-ish circle -->
+              <circle cx="160" cy="150" r="95" fill="none" stroke="rgba(234,240,255,.6)" stroke-width="2"/>
+              <ellipse cx="160" cy="150" rx="95" ry="30" fill="none" stroke="rgba(167,179,214,.6)" stroke-width="2"/>
+              <line x1="160" y1="45" x2="160" y2="255" stroke="rgba(167,179,214,.6)" stroke-width="2"/>
+              <text x="175" y="52" fill="rgba(234,240,255,.9)" font-size="14" font-weight="900">|0⟩</text>
+              <text x="175" y="265" fill="rgba(234,240,255,.9)" font-size="14" font-weight="900">|1⟩</text>
+
+              <!-- state vector -->
+              <line x1="160" y1="150" x2="230" y2="110" stroke="rgba(110,231,255,.9)" stroke-width="3"/>
+              <circle cx="230" cy="110" r="5" fill="rgba(110,231,255,.9)"/>
+              <text x="240" y="108" fill="rgba(110,231,255,.95)" font-size="12" font-weight="900">|ψ⟩</text>
+
+              <text x="60" y="285" fill="rgba(167,179,214,.95)" font-size="12" font-weight="800">
+                Gates rotate the state on the Bloch sphere.
+              </text>
+
+              <!-- gate cards -->
+              <g transform="translate(360,55)">
+                <rect x="0" y="0" width="120" height="70" rx="16" fill="rgba(18,26,51,.6)" stroke="rgba(255,255,255,.14)"/>
+                <text x="60" y="42" text-anchor="middle" fill="rgba(234,240,255,.95)" font-size="18" font-weight="900">H</text>
+                <text x="60" y="62" text-anchor="middle" fill="rgba(167,179,214,.95)" font-size="12" font-weight="800">superposition</text>
+              </g>
+
+              <g transform="translate(500,55)">
+                <rect x="0" y="0" width="120" height="70" rx="16" fill="rgba(18,26,51,.6)" stroke="rgba(255,255,255,.14)"/>
+                <text x="60" y="42" text-anchor="middle" fill="rgba(234,240,255,.95)" font-size="18" font-weight="900">X</text>
+                <text x="60" y="62" text-anchor="middle" fill="rgba(167,179,214,.95)" font-size="12" font-weight="800">bit flip</text>
+              </g>
+
+              <g transform="translate(640,55)">
+                <rect x="0" y="0" width="120" height="70" rx="16" fill="rgba(18,26,51,.6)" stroke="rgba(255,255,255,.14)"/>
+                <text x="60" y="42" text-anchor="middle" fill="rgba(234,240,255,.95)" font-size="18" font-weight="900">Rz(θ)</text>
+                <text x="60" y="62" text-anchor="middle" fill="rgba(167,179,214,.95)" font-size="12" font-weight="800">phase rotation</text>
+              </g>
+
+              <g transform="translate(430,150)">
+                <rect x="0" y="0" width="160" height="90" rx="18" fill="rgba(0,0,0,.18)" stroke="rgba(255,255,255,.12)"/>
+                <text x="12" y="28" fill="rgba(234,240,255,.92)" font-size="14" font-weight="900">Circle notation reminder</text>
+                <text x="12" y="52" fill="rgba(167,179,214,.95)" font-size="12" font-weight="800">• show |0⟩, |1⟩ poles</text>
+                <text x="12" y="72" fill="rgba(167,179,214,.95)" font-size="12" font-weight="800">• show |ψ⟩ as a vector</text>
+              </g>
+            </svg>
+          </div>
+        `
+      },
+
+      compute: {
+        leftTitle: "Compute → quantum circuit + measurement",
+        leftHtml: `
+          <p>
+            The computation is performed by applying <b>quantum gates</b> arranged in a <b>quantum circuit</b>.
+          </p>
+          <p>
+            After the gates, we perform <b>measurement</b> to obtain classical bits.
+            One execution produces one bitstring; repeated executions (<b>shots</b>) produce a distribution.
+          </p>
+          <div class="callout">
+            Typical gates reviewed on Day1: <b>H, X, Rz(θ), CX, Measure (M)</b>.
+          </div>
+          <div class="chips">
+            <span class="chip">H</span>
+            <span class="chip">X</span>
+            <span class="chip">Rz(θ)</span>
+            <span class="chip">CX</span>
+            <span class="chip">M</span>
+            <span class="chip">shots</span>
+          </div>
+        `,
+        rightTitle: "A tiny circuit diagram (visual refresh)",
+        rightHtml: `
+          <div class="svgBox">
+            <svg viewBox="0 0 760 320" aria-label="circuit">
+              <!-- wires -->
+              <line x1="60" y1="90" x2="720" y2="90" stroke="rgba(234,240,255,.6)" stroke-width="3"/>
+              <line x1="60" y1="190" x2="720" y2="190" stroke="rgba(234,240,255,.6)" stroke-width="3"/>
+
+              <text x="20" y="95" fill="rgba(234,240,255,.9)" font-size="14" font-weight="900">q0</text>
+              <text x="20" y="195" fill="rgba(234,240,255,.9)" font-size="14" font-weight="900">q1</text>
+
+              <!-- H gate -->
+              <rect x="140" y="68" width="52" height="44" rx="10" fill="rgba(18,26,51,.7)" stroke="rgba(255,255,255,.2)"/>
+              <text x="166" y="97" text-anchor="middle" fill="rgba(234,240,255,.95)" font-size="16" font-weight="900">H</text>
+
+              <!-- CX -->
+              <circle cx="270" cy="90" r="7" fill="rgba(234,240,255,.95)"/>
+              <line x1="270" y1="90" x2="270" y2="190" stroke="rgba(234,240,255,.8)" stroke-width="3"/>
+              <circle cx="270" cy="190" r="16" fill="none" stroke="rgba(234,240,255,.9)" stroke-width="3"/>
+              <line x1="254" y1="190" x2="286" y2="190" stroke="rgba(234,240,255,.9)" stroke-width="3"/>
+              <line x1="270" y1="174" x2="270" y2="206" stroke="rgba(234,240,255,.9)" stroke-width="3"/>
+              <text x="270" y="55" text-anchor="middle" fill="rgba(167,179,214,.95)" font-size="12" font-weight="900">CX</text>
+
+              <!-- Rz -->
+              <rect x="360" y="168" width="92" height="44" rx="10" fill="rgba(18,26,51,.7)" stroke="rgba(255,255,255,.2)"/>
+              <text x="406" y="196" text-anchor="middle" fill="rgba(234,240,255,.95)" font-size="14" font-weight="900">Rz(θ)</text>
+
+              <!-- measurement -->
+              <rect x="580" y="70" width="56" height="40" rx="10" fill="rgba(18,26,51,.7)" stroke="rgba(255,255,255,.2)"/>
+              <text x="608" y="96" text-anchor="middle" fill="rgba(234,240,255,.95)" font-size="14" font-weight="900">M</text>
+
+              <rect x="580" y="170" width="56" height="40" rx="10" fill="rgba(18,26,51,.7)" stroke="rgba(255,255,255,.2)"/>
+              <text x="608" y="196" text-anchor="middle" fill="rgba(234,240,255,.95)" font-size="14" font-weight="900">M</text>
+
+              <!-- classical labels -->
+              <text x="650" y="96" fill="rgba(167,179,214,.95)" font-size="12" font-weight="900">c0</text>
+              <text x="650" y="196" fill="rgba(167,179,214,.95)" font-size="12" font-weight="900">c1</text>
+
+              <!-- note -->
+              <rect x="60" y="240" width="660" height="60" rx="16" fill="rgba(0,0,0,.18)" stroke="rgba(255,255,255,.10)"/>
+              <text x="80" y="272" fill="rgba(234,240,255,.92)" font-size="13" font-weight="900">
+                Read left → right: prepare → gates → entangle → measure.
+              </text>
+              <text x="80" y="292" fill="rgba(167,179,214,.95)" font-size="12" font-weight="800">
+                Measurement converts quantum info into classical bits (repeat for many shots).
+              </text>
+            </svg>
+          </div>
+        `
+      },
+
+      decode: {
+        leftTitle: "Decode → interpret measurement results",
+        leftHtml: `
+          <p>
+            Measurement outputs classical bitstrings, e.g. <code>00001</code>. With many shots, we obtain counts:
+            how often each bitstring appears.
+          </p>
+          <div class="callout">
+            Decoding means mapping bitstrings (or the most frequent ones) into the problem’s answer format.
+          </div>
+          <ul>
+            <li><b>One shot</b> → one bitstring</li>
+            <li><b>Many shots</b> → a distribution of bitstrings</li>
+            <li><b>Decode</b> → choose / aggregate / interpret</li>
+          </ul>
+        `,
+        rightTitle: "Counts → decoded meaning (visual)",
+        rightHtml: `
+          <div class="svgBox">
+            <svg viewBox="0 0 760 300" aria-label="counts">
+              <rect x="30" y="30" width="700" height="240" rx="18" fill="rgba(0,0,0,.18)" stroke="rgba(255,255,255,.12)"/>
+              <text x="55" y="70" fill="rgba(234,240,255,.92)" font-size="14" font-weight="900">Measured counts (example)</text>
+
+              <text x="60" y="110" fill="rgba(167,179,214,.95)" font-size="13" font-weight="900">00001</text>
+              <rect x="135" y="96" width="420" height="18" rx="9" fill="rgba(110,231,255,.25)"/>
+              <text x="585" y="110" fill="rgba(167,179,214,.95)" font-size="12" font-weight="900">120</text>
+
+              <text x="60" y="145" fill="rgba(167,179,214,.95)" font-size="13" font-weight="900">10110</text>
+              <rect x="135" y="131" width="240" height="18" rx="9" fill="rgba(110,231,255,.18)"/>
+              <text x="585" y="145" fill="rgba(167,179,214,.95)" font-size="12" font-weight="900">55</text>
+
+              <text x="60" y="180" fill="rgba(167,179,214,.95)" font-size="13" font-weight="900">01100</text>
+              <rect x="135" y="166" width="160" height="18" rx="9" fill="rgba(110,231,255,.14)"/>
+              <text x="585" y="180" fill="rgba(167,179,214,.95)" font-size="12" font-weight="900">33</text>
+
+              <rect x="55" y="205" width="650" height="52" rx="16" fill="rgba(167,139,250,.10)" stroke="rgba(167,139,250,.22)"/>
+              <text x="75" y="236" fill="rgba(234,240,255,.92)" font-size="13" font-weight="900">
+                Decode: map bitstrings → candidate solutions, choose the best / most frequent.
+              </text>
+            </svg>
+          </div>
+          <div class="small" style="margin-top:8px;">
+            In practice, you often post-process results (validation, scoring, etc.).
+          </div>
+        `
+      }
+    };
+
+    const left = document.getElementById("left");
+    const right = document.getElementById("right");
+    const nav = document.getElementById("nav");
+
+    function setPage(key){
+      const p = pages[key];
+
+      left.innerHTML = `<h2>${p.leftTitle}</h2>${p.leftHtml}`;
+      right.innerHTML = `<h2>${p.rightTitle}</h2>${p.rightHtml}`;
+
+      [...nav.querySelectorAll(".tab")].forEach(t=>{
+        t.classList.toggle("active", t.dataset.page === key);
+      });
+    }
+
+    nav.addEventListener("click", (e)=>{
+      const tab = e.target.closest(".tab");
+      if(!tab) return;
+      setPage(tab.dataset.page);
+    });
+
+    setPage("overview");
+  </script>
+</body>
+</html>
